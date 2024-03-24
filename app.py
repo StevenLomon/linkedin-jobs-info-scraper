@@ -65,7 +65,6 @@ def split_and_clean_full_name(full_name):
 
 def scrape_linkedin_and_show_progress(linkedin_job_url, total_results, progress_bar, text_placeholder):
     result_dataframe = pd.DataFrame(columns=['Förnamn', 'Efternamn', 'LinkedIn URL'])
-
     ranges = split_total_in_chunks_of_100(total_results)
 
     print(f"Starting the scrape! {total_results} to scrape")
@@ -77,6 +76,8 @@ def scrape_linkedin_and_show_progress(linkedin_job_url, total_results, progress_
         print(f"Going through result {start} to {stop}")
         job_posting_list = get_job_posting_ids(linkedin_job_url, start, stop)
 
+        temp_data_list = []
+
         for job_posting in job_posting_list:
             counter += 1
             if counter >= total_results:
@@ -87,11 +88,11 @@ def scrape_linkedin_and_show_progress(linkedin_job_url, total_results, progress_
  
             if linkedin_url and full_name:
                 first_name, last_name = split_and_clean_full_name(full_name)
-                new_row = pd.DataFrame({'Förnamn': first_name, 'Efternamn': last_name, 'LinkedIn URL': linkedin_url}, index=[0])
+                new_row = {'Förnamn': first_name, 'Efternamn': last_name, 'LinkedIn URL': linkedin_url}
 
-                # Check for duplicates
-                if not (result_dataframe['Förnamn'] == first_name).any() and (result_dataframe['Efternamn'] == last_name).any() and (result_dataframe['LinkedIn URL'] == linkedin_url).any():
-                    result_dataframe = result_dataframe.append(new_row, ignore_index=True)
+                # Check if the new_row is a duplicate
+                if new_row not in temp_data_list:
+                    temp_data_list.append(new_row)
                 else:
                     print("Duplicate found. Skipping.")
                     continue    
