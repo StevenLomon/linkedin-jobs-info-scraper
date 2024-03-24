@@ -63,36 +63,51 @@ def split_and_clean_full_name(full_name):
     last_name = name_parts[-1] if len(name_parts) > 1 else ''  # Check to avoid index error if name_parts is empty
     return (first_name, last_name)
 
-def scrape_linkedin(linkedin_job_url, total_results):
+def scrape_linkedin_and_show_progress(linkedin_job_url, total_results, progress_bar, text_placeholder):
     result_dataframe = pd.DataFrame(columns=['Förnamn', 'Efternamn', 'LinkedIn URL'])
 
     ranges = split_total_in_chunks_of_100(total_results)
 
     print(f"Starting the scrape! {total_results} to scrape")
-    counter = 1
+    counter = 0
 
-    for range in ranges:
-        start = range[0]
-        stop = range[1]
+    for start, stop in ranges:
+        if counter >= total_results:
+            break
         print(f"Going through result {start} to {stop}")
         job_posting_list = get_job_posting_ids(linkedin_job_url, start, stop)
 
         for job_posting in job_posting_list:
+            counter += 1
+            if counter >= total_results:
+                break
+
             linkedin_url, full_name = extract_linkedin_url_and_full_name(job_posting)
             print(f"#{counter} : LinkedIn URL: {linkedin_url}, Name: {full_name}")
-            counter += 1
+ 
             if linkedin_url and full_name:
                 first_name, last_name = split_and_clean_full_name(full_name)
                 new_row = pd.DataFrame({'Förnamn': first_name, 'Efternamn': last_name, 'LinkedIn URL': linkedin_url}, index=[0])
 
-                if not result_dataframe[(result_dataframe['Förnamn'] == first_name) & 
-                                        (result_dataframe['Efternamn'] == last_name) & 
-                                        (result_dataframe['LinkedIn URL'] == linkedin_url)].empty:
+                # Check for duplicates
+                if not (result_dataframe['Förnamn'] == first_name).any() and (result_dataframe['Efternamn'] == last_name).any() and (result_dataframe['LinkedIn URL'] == linkedin_url).any():
+                    result_dataframe = result_dataframe.append(new_row, ignore_index=True)
+                else:
                     print("Duplicate found. Skipping.")
-                    continue
+                    continue    
+            
+            # Update the progress bar and text after each job posting is processed
+            text_placeholder.text(f"Processing {counter} / {total_results}")
+            progress_bar.progress(counter / total_results)
 
-                result_dataframe = pd.concat([result_dataframe, new_row], ignore_index=True)     
-               
+    # Final update to ensure completion is shown
+    if counter < total_results:
+        text_placeholder.text(f"Processing completed! Total processed: {counter} / {total_results}")
+        progress_bar.progress(1.0)  # Ensure progress bar is filled at the end
+    else:
+        text_placeholder.text(f"Processing {total_results} / {total_results}")
+        progress_bar.progress(1.0)  # Ensure progress bar is filled at the end
+
     return result_dataframe
 
 def generate_csv(dataframe, result_name):
@@ -128,7 +143,11 @@ if st.button('Generate CSV'):
         if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
             total_number_of_results = int(max_results_to_check)
 
-        scraped_data_df = scrape_linkedin(response, total_number_of_results)
+        # Loading bar
+        progress_bar = st.progress(0)
+        text_placeholder = st.empty()
+
+        scraped_data_df = scrape_linkedin_and_show_progress(response, total_number_of_results, progress_bar, text_placeholder)
         csv_file = generate_csv(scraped_data_df, result_name)
         
         st.success(f'CSV file generated: {csv_file}')
