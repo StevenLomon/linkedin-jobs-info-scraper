@@ -1,25 +1,25 @@
-import time, os, re, pickle, random, requests
+import time, os, re, pickle, random, requests, math
 import pandas  as pd
 import streamlit as st
 from rich import print, print_json
 
-df = pd.DataFrame(columns=['Förnamn', 'Efternamn', 'LinkedIn URL', 'Företag'])
-
 input_url = "https://www.linkedin.com/jobs/search/?currentJobId=3850239811&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
-num_of_results = 100 # why KeyError if more than 100???
 
-def get_job_posting_ids(linkedin_job_url):
-    keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
-    # Extracts the first 100 results for the key word, more will crash it
-    api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count=100&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start=0"
+def get_total_number_of_results(response):
+    paging = response.json().get('paging', {})
+
+    total = None
+    if paging:
+        total = paging.get('total')
     
-    payload = {}
-    headers = {
-    'csrf-token': 'ajax:5371233139676576627',
-    'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
-    }
-    response = requests.request("GET", api_request_url, headers=headers, data=payload)
+    return total
 
+# We can only fetch 100 at a time
+def split_total_in_chunks_of_100(total):
+    chunks = [(i, min(i+100, total)) for i in range(0, total, 100)]
+    return chunks
+
+def get_job_posting_ids(response, start, stop):
     metadata = response.json().get('metadata', {})
     jobCardPrefetchQueries = metadata.get('jobCardPrefetchQueries', [])
     job_posting_ids_list = []
@@ -63,24 +63,36 @@ def split_and_clean_full_name(full_name):
     last_name = name_parts[-1] if len(name_parts) > 1 else ''  # Check to avoid index error if name_parts is empty
     return (first_name, last_name)
 
-def scrape_linkedin(linkedin_job_url):
+def scrape_linkedin(linkedin_job_url, total_results):
     result_dataframe = pd.DataFrame(columns=['Förnamn', 'Efternamn', 'LinkedIn URL'])
 
-    keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
-    print(keyword)
-    job_posting_list = get_job_posting_ids(linkedin_job_url)
-    print(f"Length: {len(job_posting_list)}")
+    ranges = split_total_in_chunks_of_100(total_results)
 
-    for job_posting in job_posting_list:
-        linkedin_url = extract_linkedin_url_and_full_name(job_posting)[0]
-        full_name = extract_linkedin_url_and_full_name(job_posting)[1]
-        print(f"LURL: {linkedin_url}, Name: {full_name}")
-        if linkedin_url is not None and full_name is not None:
-            first_name = split_and_clean_full_name(full_name)[0]
-            last_name = split_and_clean_full_name(full_name)[1]
-            new_row = pd.DataFrame({'Förnamn': first_name, 'Efternamn': last_name, 'LinkedIn URL': linkedin_url}, index=[0])
-            result_dataframe = pd.concat([result_dataframe, new_row], ignore_index=True)        
+    print(f"Starting the scrape! {total_results} to scrape")
+    counter = 1
 
+    for range in ranges:
+        start = range[0]
+        stop = range[1]
+        print(f"Going through result {start} to {stop}")
+        job_posting_list = get_job_posting_ids(linkedin_job_url, start, stop)
+
+        for job_posting in job_posting_list:
+            linkedin_url, full_name = extract_linkedin_url_and_full_name(job_posting)
+            print(f"#{counter} : LinkedIn URL: {linkedin_url}, Name: {full_name}")
+            counter += 1
+            if linkedin_url and full_name:
+                first_name, last_name = split_and_clean_full_name(full_name)
+                new_row = pd.DataFrame({'Förnamn': first_name, 'Efternamn': last_name, 'LinkedIn URL': linkedin_url}, index=[0])
+
+                if not result_dataframe[(result_dataframe['Förnamn'] == first_name) & 
+                                        (result_dataframe['Efternamn'] == last_name) & 
+                                        (result_dataframe['LinkedIn URL'] == linkedin_url)].empty:
+                    print("Duplicate found. Skipping.")
+                    continue
+
+                result_dataframe = pd.concat([result_dataframe, new_row], ignore_index=True)     
+               
     return result_dataframe
 
 def generate_csv(dataframe, result_name):
@@ -96,12 +108,27 @@ st.title('LinkedIn Job URL to CSV Generator')
 # User input for LinkedIn URL
 linkedin_job_url = st.text_input('Enter LinkedIn Job URL:', '')
 result_name = st.text_input('Enter a name for the csv:', '')
+max_results_to_check = st.text_input('Enter maximum amounts of results to check (leave blank to scrape all results):', '')
 
 # Button to generate CSV
 if st.button('Generate CSV'):
     if linkedin_job_url:
+        keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
+        api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count=100&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start=0"
         
-        scraped_data_df = scrape_linkedin(linkedin_job_url)
+        payload = {}
+        headers = {
+        'csrf-token': 'ajax:5371233139676576627',
+        'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
+        }
+        response = requests.request("GET", api_request_url, headers=headers, data=payload)
+
+        if len(max_results_to_check) == 0:
+            total_number_of_results = get_total_number_of_results(response)
+        else:
+            total_number_of_results = int(max_results_to_check)
+
+        scraped_data_df = scrape_linkedin(response, total_number_of_results)
         csv_file = generate_csv(scraped_data_df, result_name)
         
         st.success(f'CSV file generated: {csv_file}')
@@ -110,11 +137,6 @@ if st.button('Generate CSV'):
             st.download_button(label="Download CSV", data=file, file_name=csv_file, mime='text/csv')
     else:
         st.error('Please enter a valid LinkedIn URL.')
-
-
-
-
-
 
 
 # Code graveyard :)
@@ -184,3 +206,17 @@ if st.button('Generate CSV'):
 #             title = hiringTeamCard.get('title', {})
 #             if title:
 #                 full_name = title.get('text')
+        
+# def split_total_in_chunks_of_100(total):
+#     whole = math.floor(total / 100)
+#     print(whole)
+#     result = []
+
+#     start = 0
+#     for i in range(whole):
+#         current_set = (start, (i+1)*100)
+#         start += 100
+#         result.append(current_set)
+#     result.append((whole*100, whole*100 + total%100))
+    
+#     return result
