@@ -63,8 +63,33 @@ def split_and_clean_full_name(full_name):
     last_name = name_parts[-1] if len(name_parts) > 1 else ''  # Check to avoid index error if name_parts is empty
     return (first_name, last_name)
 
+def extract_job_title_and_company_name(job_posting_id):
+    api_request_url = f"https://www.linkedin.com/voyager/api/jobs/jobPostings/{job_posting_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65"
+    payload = {}
+    headers = {
+    'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AnalyticsSyncHistory=AQLQgW3RRkANCwAAAY5jOmkwk72r8IMTrd9st_hjdmoulqVl5geMen4LqgmF8K0AUn3R-jOxuSedvejsMpUyYg; lms_ads=AQE-j01C-ngGfAAAAY5jOmnPPxW1fk7yURo5p3BzckUP10_2GF31Wb6DTjp2ZQaXuFNEb99nBV3t4n9womVMaXKXpy9e5DeJ; lms_analytics=AQE-j01C-ngGfAAAAY5jOmnPPxW1fk7yURo5p3BzckUP10_2GF31Wb6DTjp2ZQaXuFNEb99nBV3t4n9womVMaXKXpy9e5DeJ; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; lang=v=2&lang=en-us; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; liap=true; JSESSIONID="ajax:5371233139676576627"; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq2bNXaXIRuV5eknJfRcJJy%252f5nqyjDnULhxqy9cd6iM21Cb7%252fhxAyWYV8%252fTNNXtTXAz2THy%252bS1UAUJ4C0TFJqZwlgKE1N6wCZBrbq1PYr27WbTaCjVCrA2Xi4%252bdIojAPbJKCM3N7t7VfD39gWluYQ%252fMQulpoiC0OWVKL%252bmdyMB1f2bBiWIjwD7yL%252fmXkbdpys%252bEA0dC3zukOo3gFYjVJIaYI%253d; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19806%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1711906882%7C6%7CMCAAMB-1711906882%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1711309282s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; sdsc=22%3A1%2C1711302394031%7EJAPP%2C0%2FASzzgvclVA1rcG151Seh7fZ3vE%3D; li_mc=MTsyMTsxNzExMzAyNDk4OzI7MDIxH8iwcfXfDEtzPiAtqVhNwwrm3dw9onOmS74ikErmNJ8=; UserMatchHistory=AQJRDuzZNIG2_wAAAY5xm9Gxj5VlpKduNO94tLc3KgcQiC1tQBcPqnAdsbCdKVC_CLZRH0zVP9P6bT6CB8lowEfy4vocrB4yoDIa0bBYwFcyJuzMw3R9YpYx6Q44kj2pOW3jz_1Edu6U7aYfWZmFCWXwsPP9B7MB7Je59lyFALkH4xxejaRiZS4YJM5Dk1M30BYrywDR1zuUUbggixPSai4vT1UBlclj6kt7Cf4pyqnH-zJqq4fFLjZzkRCykOpzpLAsAM0zjOmsAwW2BfoLNZp9jHLWUHIhgIU4qD-0c55Lf7foJ6y-Dsn2hsNOeTPt5_TGC9g; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711303021:t=1711383469:v=2:sig=AQFYdoK2Srcqn6EfGJG8i0jCxb6cMO_G"; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzExMzAzNDEzOzI7MDIxGQP05JsWdH+T0k4V8WMWSbty3sS/FP0P48TMUQTQMPg=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711303409:t=1711383469:v=2:sig=AQGXHrUNzDp7ot1SM_08e6GRUJ6lKNMk"; sdsc=22%3A1%2C1711302394031%7EJAPP%2C0%2FASzzgvclVA1rcG151Seh7fZ3vE%3D',
+    'csrf-token': 'ajax:5371233139676576627'
+    }
+
+    response = requests.request("GET", api_request_url, headers=headers, data=payload)
+
+    job_title = None
+    company_name = None
+
+    job_title = response.json().get('title')
+
+    companyDetails = response.json().get('companyDetails', {})
+    if companyDetails:
+        webJobPostingCompany = companyDetails.get('com.linkedin.voyager.deco.jobs.web.shared.WebJobPostingCompany', {})
+        if webJobPostingCompany:
+            companyResolutionResult = webJobPostingCompany.get('companyResolutionResult', {})
+            if companyResolutionResult:
+                company_name = companyResolutionResult.get('name')
+
+    return (job_title, company_name)
+
 def scrape_linkedin_and_show_progress(linkedin_job_url, total_results, progress_bar, text_placeholder):
-    result_dataframe = pd.DataFrame(columns=['Förnamn', 'Efternamn', 'LinkedIn URL'])
+    result_dataframe = pd.DataFrame(columns=['Förnamn', 'Efternamn', 'LinkedIn URL', 'Jobbtitel', 'Företag'])
     ranges = split_total_in_chunks_of_100(total_results)
 
     print(f"Starting the scrape! {total_results} to scrape")
@@ -84,11 +109,18 @@ def scrape_linkedin_and_show_progress(linkedin_job_url, total_results, progress_
                 break
 
             linkedin_url, full_name = extract_linkedin_url_and_full_name(job_posting)
-            print(f"#{counter} : LinkedIn URL: {linkedin_url}, Name: {full_name}")
  
             if linkedin_url and full_name:
                 first_name, last_name = split_and_clean_full_name(full_name)
-                new_row = {'Förnamn': first_name, 'Efternamn': last_name, 'LinkedIn URL': linkedin_url}
+
+                # Only if we have a name and linkedIn URL (there is a hiring team) do we need to 
+                # check for job title and company name
+                job_title, company_name = extract_job_title_and_company_name(job_posting)
+
+                print(f"#{counter} : LinkedIn URL: {linkedin_url}, Name: {full_name}, Job title: {job_title}, Company: {company_name}")
+
+                new_row = {'Förnamn': first_name, 'Efternamn': last_name, 'LinkedIn URL': linkedin_url,
+                           'Jobbtitel': job_title, 'Företag': company_name}
 
                 # Check if the new_row is a duplicate
                 if new_row not in temp_data_list:
@@ -128,7 +160,7 @@ st.title('LinkedIn Job URL to CSV Generator')
 # User input for LinkedIn URL
 linkedin_job_url = st.text_input('Enter LinkedIn Job URL:', '')
 result_name = st.text_input('Enter a name for the csv:', '')
-max_results_to_check = st.text_input('Enter maximum amounts of results to check (leave blank to scrape all results):', '')
+max_results_to_check = st.text_input('Enter maximum amounts of jobs to check (leave blank to scrape all jobs):', '')
 
 # Button to generate CSV
 if st.button('Generate CSV'):
