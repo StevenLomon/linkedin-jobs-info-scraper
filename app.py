@@ -123,9 +123,9 @@ if st.button('Generate CSV'):
         }
         response = requests.request("GET", api_request_url, headers=headers, data=payload)
 
-        if len(max_results_to_check) == 0:
-            total_number_of_results = get_total_number_of_results(response)
-        else:
+        total_number_of_results = get_total_number_of_results(response)
+
+        if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
             total_number_of_results = int(max_results_to_check)
 
         scraped_data_df = scrape_linkedin(response, total_number_of_results)
