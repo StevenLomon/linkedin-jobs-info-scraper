@@ -109,6 +109,10 @@ def scrape_linkedin_and_show_progress(linkedin_job_url, total_results, progress_
         text_placeholder.text(f"Processing {total_results} / {total_results}")
         progress_bar.progress(1.0)  # Ensure progress bar is filled at the end
 
+    # Convert the list of dictionaries to a DataFrame and concatenate it with the existing result_dataframe
+    new_data_df = pd.DataFrame(temp_data_list)
+    result_dataframe = pd.concat([result_dataframe, new_data_df], ignore_index=True)
+
     return result_dataframe
 
 def generate_csv(dataframe, result_name):
