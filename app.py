@@ -9,17 +9,23 @@ from io import BytesIO
 
 input_url = "https://www.linkedin.com/jobs/search/?currentJobId=3850239811&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
 
-def get_total_number_of_results(response):
-    paging = response.json().get('paging', {})
+def get_total_number_of_results(response, max_retries=3, delay=1):
+    attempts = 0
+    while attempts < max_retries:
+        paging = response.json().get('paging', {})
 
-    total = None
-    if paging:
-        total = paging.get('total')
-    
-    return total
+        total = None
+        if paging:
+            total = paging.get('total')
+        
+        if isinstance(total, int):
+            return total
+    else:
+        attempts += 1
+        time.sleep(delay)
 
 # We can only fetch 100 at a time
-def split_total_in_batches_of_100(total):
+def split_total_into_batches_of_100(total):
     batches = [(i, i + 100) for i in range(0, total, 100)]
     # Adjust the last batch to not exceed the total
     if batches:
@@ -108,7 +114,7 @@ def extract_job_title_and_company_name(job_posting_id, max_retries=3, delay=1):
 
 def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text_placeholder):
     result_dataframe = pd.DataFrame(columns=['Förnamn', 'Efternamn', 'LinkedIn URL', 'Jobbtitel', 'Företag'])
-    batches = split_total_in_batches_of_100(total_results)
+    batches = split_total_into_batches_of_100(total_results)
     print(f"batches: {batches}")
 
     print(f"Starting the scrape! {total_results} to scrape")
@@ -252,6 +258,8 @@ if st.button('Generate File'):
             response = requests.request("GET", api_request_url, headers=headers, data=payload)
             if response.status_code == 200:
                 total_number_of_results = get_total_number_of_results(response)
+                print(total_number_of_results)
+                print(type(total_number_of_results))
 
                 if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
                     total_number_of_results = int(max_results_to_check)
@@ -348,7 +356,7 @@ if st.button('Generate File'):
 #             if title:
 #                 full_name = title.get('text')
         
-# def split_total_in_batches_of_100(total):
+# def split_total_into_batches_of_100(total):
 #     whole = math.floor(total / 100)
 #     print(whole)
 #     result = []
@@ -366,7 +374,7 @@ if st.button('Generate File'):
 # keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
 # print(f"Keyword: {keyword}")
 # total_number_of_results = 664
-# batches = split_total_in_batches_of_100(total_number_of_results)
+# batches = split_total_into_batches_of_100(total_number_of_results)
 # print(batches)
 
 # all_ids = []
@@ -392,7 +400,7 @@ if st.button('Generate File'):
 # linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3845996635&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
 # keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
 # total_number_of_results = 815
-# batches = split_total_in_batches_of_100(total_number_of_results)
+# batches = split_total_into_batches_of_100(total_number_of_results)
 
 # all_ids = []
 
