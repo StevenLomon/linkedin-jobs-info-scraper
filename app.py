@@ -158,7 +158,7 @@ def generate_csv(dataframe, result_name):
 st.title('LinkedIn Job search URL to CSV Generator')
 
 # User input for LinkedIn URL
-linkedin_job_url = st.text_input('Enter LinkedIn Job URL:', '')
+linkedin_job_url = st.text_input('Enter URL from the LinkedIn Job search:', '')
 result_name = st.text_input('Enter a name for the csv:', '')
 max_results_to_check = st.text_input('Enter maximum amounts of jobs to check (leave blank to scrape all jobs):', '')
 
