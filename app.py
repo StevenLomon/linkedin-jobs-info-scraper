@@ -177,15 +177,6 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
         if counter >= total_results:
             break
 
-    print("Hej!")
-    # # Completion checks should account for possible early stopping
-    # if counter >= total_results:
-    #     text_placeholder.text(f"Processing completed! Total processed: {total_results} / {total_results}")
-    #     progress_bar.progress(1.0)  # Ensure progress bar is filled at the end
-    # else:
-    #     text_placeholder.text(f"Processing completed! Total processed: {counter} / {total_results}")
-    #     progress_bar.progress(1.0)  # Progress bar reflects actual number processed
-
     # Final update outside the loop to ensure progress is marked complete
     text_placeholder.text(f"Processing completed! Total processed: {counter} / {total_results}")
     progress_bar.progress(1.0)  # Ensure the progress bar is full at completion
@@ -228,6 +219,10 @@ file_format = st.radio("Choose the file format for download:", ('CSV', 'Excel'))
 # Button to the result file
 if st.button('Generate File'):
     if linkedin_job_url:
+        # Loading bar
+        progress_bar = st.progress(0)
+        text_placeholder = st.empty()
+        
         keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
         api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count=100&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start=0"
         
@@ -248,10 +243,6 @@ if st.button('Generate File'):
                 if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
                     total_number_of_results = int(max_results_to_check)
 
-                # Loading bar
-                progress_bar = st.progress(0)
-                text_placeholder = st.empty()
-
                 scraped_data_df = scrape_linkedin_and_show_progress(keyword, total_number_of_results, progress_bar, text_placeholder)
 
                 if file_format == 'CSV':
@@ -259,15 +250,18 @@ if st.button('Generate File'):
                     with open(csv_file, "rb") as file:
                         st.download_button(label="Download CSV", data=file, file_name=csv_file, mime='text/csv')
                     st.success(f'CSV file generated: {csv_file}')
+                    break
                 elif file_format == 'Excel':
                     excel_file = generate_excel(scraped_data_df, result_name)
                     st.download_button(label="Download Excel", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.ms-excel')
                     st.success(f'Excel file generated: {result_name}.xlsx')
+                    break
             else:
                 attempts += 1
                 time.sleep(delay)  # Wait before the next attempt
         
-        st.error('Unable to create a valid request with the given LinkedIn URL.')
+        if attempts == 3:
+            st.error('Unable to create a valid request with the given LinkedIn URL.')
 
     else:
         st.error('Please enter a valid LinkedIn URL.')
@@ -395,3 +389,12 @@ if st.button('Generate File'):
 #     lurl, name = extract_linkedin_url_and_full_name(id)
 #     title, company = extract_job_title_and_company_name(id)
 #     print(f"LURL: {lurl}, Name: {name}, Title: {title}, Company: {company}")
+        
+
+# # Completion checks should account for possible early stopping
+# if counter >= total_results:
+#     text_placeholder.text(f"Processing completed! Total processed: {total_results} / {total_results}")
+#     progress_bar.progress(1.0)  # Ensure progress bar is filled at the end
+# else:
+#     text_placeholder.text(f"Processing completed! Total processed: {counter} / {total_results}")
+#     progress_bar.progress(1.0)  # Progress bar reflects actual number processed
