@@ -2,6 +2,7 @@ import time, os, re, pickle, random, requests, math
 import pandas  as pd
 import streamlit as st
 from rich import print, print_json
+from io import BytesIO
 
 input_url = "https://www.linkedin.com/jobs/search/?currentJobId=3850239811&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
 
@@ -31,29 +32,6 @@ def get_job_posting_ids(response, start, stop):
             job_posting_ids_list.append(job_posting_id)
 
     return job_posting_ids_list
-
-linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
-keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
-print(f"Keyword: {keyword}")
-api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count=100&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start=0"
-        
-payload = {}
-headers = {
-'csrf-token': 'ajax:5371233139676576627',
-'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
-}
-response = requests.request("GET", api_request_url, headers=headers, data=payload)
-
-total_number_of_results = get_total_number_of_results(response)
-print(f"Total results: {total_number_of_results}")
-
-chunks = split_total_in_chunks_of_100(total_number_of_results)
-print(chunks)
-
-start, stop = chunks[0]
-
-sem_seo_ids = get_job_posting_ids(response, start, stop)
-print(f"Job ids: {sem_seo_ids}, length: {len(sem_seo_ids)}")
 
 def extract_linkedin_url_and_full_name(job_posting_id, max_retries=3, delay=1):
     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerHiringDashJobHiringSocialHirersCards?jobPosting=urn%3Ali%3Afsd_jobPosting%3A{job_posting_id}&q=jobPosting"
@@ -122,14 +100,6 @@ def extract_job_title_and_company_name(job_posting_id, max_retries=3, delay=1):
     
     return None, None
 
-# title, company = extract_job_title_and_company_name(sem_seo_ids[1])
-# print(f"T: {title}, C: {company}")
-
-# for id in sem_seo_ids:
-#     lurl, name = extract_linkedin_url_and_full_name(id)
-#     title, company = extract_job_title_and_company_name(id)
-#     print(f"LURL: {lurl}, Name: {name}, Title: {title}, Company: {company}")
-
 def scrape_linkedin_and_show_progress(linkedin_job_url, total_results, progress_bar, text_placeholder):
     result_dataframe = pd.DataFrame(columns=['Förnamn', 'Efternamn', 'LinkedIn URL', 'Jobbtitel', 'Företag'])
     ranges = split_total_in_chunks_of_100(total_results)
@@ -197,6 +167,17 @@ def generate_csv(dataframe, result_name):
     dataframe.to_csv(result_name, index=False)
     return result_name
 
+def generate_excel(dataframe, result_name):
+    if result_name.endswith('.xlsx'):
+        result_name = result_name
+    else:
+        result_name = result_name + '.xlsx'
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        dataframe.to_excel(writer, index=False, sheet_name='Sheet1')
+    output.seek(0)
+    return output
+
 st.title('LinkedIn Job search URL to CSV Generator')
 
 # User input for LinkedIn URL
@@ -204,8 +185,11 @@ linkedin_job_url = st.text_input('Enter URL from the LinkedIn Job search:', '')
 result_name = st.text_input('Enter a name for the resulting csv file:', '')
 max_results_to_check = st.text_input('Enter maximum amounts of jobs to check (leave blank to scrape all available jobs):', '')
 
-# Button to generate CSV
-if st.button('Generate CSV'):
+# Radio button to choose the file format
+file_format = st.radio("Choose the file format for download:", ('CSV', 'Excel'))
+
+# Button to the result file
+if st.button('Generate File'):
     if linkedin_job_url:
         keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
         api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count=100&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start=0"
@@ -232,12 +216,16 @@ if st.button('Generate CSV'):
                 text_placeholder = st.empty()
 
                 scraped_data_df = scrape_linkedin_and_show_progress(response, total_number_of_results, progress_bar, text_placeholder)
-                csv_file = generate_csv(scraped_data_df, result_name)
-                
-                st.success(f'CSV file generated: {csv_file}')
-                # Download link
-                with open(csv_file, "rb") as file:
-                    st.download_button(label="Download CSV", data=file, file_name=csv_file, mime='text/csv')
+
+                if file_format == 'CSV':
+                    csv_file = generate_csv(scraped_data_df, result_name)
+                    with open(csv_file, "rb") as file:
+                        st.download_button(label="Download CSV", data=file, file_name=csv_file, mime='text/csv')
+                    st.success(f'CSV file generated: {csv_file}')
+                elif file_format == 'Excel':
+                    excel_file = generate_excel(scraped_data_df, result_name)
+                    st.download_button(label="Download Excel", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.ms-excel')
+                    st.success(f'Excel file generated: {result_name}.xlsx')
             else:
                 attempts += 1
                 time.sleep(delay)  # Wait before the next attempt
@@ -329,3 +317,31 @@ if st.button('Generate CSV'):
 #     result.append((whole*100, whole*100 + total%100))
     
 #     return result
+        
+# linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
+# keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
+# print(f"Keyword: {keyword}")
+# api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count=100&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start=0"
+        
+# payload = {}
+# headers = {
+# 'csrf-token': 'ajax:5371233139676576627',
+# 'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
+# }
+# response = requests.request("GET", api_request_url, headers=headers, data=payload)
+
+# total_number_of_results = get_total_number_of_results(response)
+# print(f"Total results: {total_number_of_results}")
+
+# chunks = split_total_in_chunks_of_100(total_number_of_results)
+# print(chunks)
+
+# start, stop = chunks[0]
+
+# sem_seo_ids = get_job_posting_ids(response, start, stop)
+# print(f"Job ids: {sem_seo_ids}, length: {len(sem_seo_ids)}")
+        
+# for id in sem_seo_ids:
+#     lurl, name = extract_linkedin_url_and_full_name(id)
+#     title, company = extract_job_title_and_company_name(id)
+#     print(f"LURL: {lurl}, Name: {name}, Title: {title}, Company: {company}")
