@@ -160,7 +160,7 @@ st.title('LinkedIn Job search URL to CSV Generator')
 # User input for LinkedIn URL
 linkedin_job_url = st.text_input('Enter URL from the LinkedIn Job search:', '')
 result_name = st.text_input('Enter a name for the csv:', '')
-max_results_to_check = st.text_input('Enter maximum amounts of jobs to check (leave blank to scrape all jobs):', '')
+max_results_to_check = st.text_input('Enter maximum amounts of jobs to check (leave blank to scrape all available jobs):', '')
 
 # Button to generate CSV
 if st.button('Generate CSV'):
