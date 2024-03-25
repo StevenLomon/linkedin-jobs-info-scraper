@@ -105,16 +105,17 @@ def extract_job_title_and_company_name(job_posting_id, max_retries=3, delay=1):
 
 def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text_placeholder):
     result_dataframe = pd.DataFrame(columns=['Förnamn', 'Efternamn', 'LinkedIn URL', 'Jobbtitel', 'Företag'])
-    ranges = split_total_in_chunks_of_100(total_results)
+    chunks = split_total_in_chunks_of_100(total_results)
 
     print(f"Starting the scrape! {total_results} to scrape")
     counter = 0
     temp_data_list = []
-    processed_ids = set()
+    unique_ids = set()
 
-    for start, stop in ranges:
-        print(f"Going through result {start} to {stop}")
-        api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={stop}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
+    for i, (start, stop) in enumerate(chunks):
+        chunk_size = stop - start
+        api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={chunk_size}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
+        
         payload = {}
         headers = {
         'csrf-token': 'ajax:5371233139676576627',
@@ -129,18 +130,19 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
             if response.status_code == 200:
                 job_posting_list = get_job_posting_ids(response)
 
+                print(f"Request #{i+1}: Total IDs fetched - {len(job_posting_list)}. Unique IDs - {len(set(job_posting_list))}")
+
                 for job_posting in job_posting_list:
                     if counter >= total_results:
                         break
 
                     counter += 1
                     print(f"Processing job posting #{job_posting}")
-                    if job_posting in processed_ids:
+                    if job_posting in unique_ids:
                         print("Id already processed. Skipping")
                     else:
                         print("New id. Processing job posting")
-                        # print(f"The set right now: {processed_ids}")
-                        processed_ids.add(job_posting)
+                        unique_ids.add(job_posting)
                         linkedin_url, full_name = extract_linkedin_url_and_full_name(job_posting)
             
                         if linkedin_url and full_name:
@@ -176,6 +178,8 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
         # Check outside the while loop to break the outer for-loop if total_results have been processed
         if counter >= total_results:
             break
+
+    print(f"Done. All ids: {len(total_number_of_results)}\nUnique ids: {len(unique_ids)}")
 
     # Final update outside the loop to ensure progress is marked complete
     text_placeholder.text(f"Processing completed! Total processed: {counter} / {total_results}")
