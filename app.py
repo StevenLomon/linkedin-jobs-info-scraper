@@ -1,8 +1,11 @@
-import time, os, re, pickle, random, requests, math
+import time, os, re, pickle, random, requests, math, sys
 import pandas  as pd
 import streamlit as st
 from rich import print, print_json
 from io import BytesIO
+
+# print(sys.executable)
+# print(sys.path)
 
 input_url = "https://www.linkedin.com/jobs/search/?currentJobId=3850239811&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
 

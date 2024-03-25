@@ -1,0 +1,3 @@
+{
+    "terminal.integrated.shellArgs.linux": ["-c", "source home/steven/Python/linkedin-jobs-info-scraper/env/bin/activate && exec bash"]
+}
