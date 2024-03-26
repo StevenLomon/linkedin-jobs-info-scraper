@@ -75,7 +75,7 @@ def split_and_clean_full_name(full_name):
     last_name = name_parts[-1] if len(name_parts) > 1 else ''  # Check to avoid index error if name_parts is empty
     return (first_name, last_name)
 
-def extract_company_info(job_posting_id, max_retries=3, delay=1):
+def extract_job_title_and_company_name(job_posting_id, max_retries=3, delay=1):
     api_request_url = f"https://www.linkedin.com/voyager/api/jobs/jobPostings/{job_posting_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65"
     payload = {}
     headers = {
@@ -89,8 +89,6 @@ def extract_company_info(job_posting_id, max_retries=3, delay=1):
         if response.status_code == 200:
             job_title = None
             company_name = None
-            employee_count = None
-            company_url = None
 
             job_title = response.json().get('title')
 
@@ -101,10 +99,8 @@ def extract_company_info(job_posting_id, max_retries=3, delay=1):
                     companyResolutionResult = WebJobPostingCompany.get('companyResolutionResult', {})
                     if companyResolutionResult:
                         company_name = companyResolutionResult.get('name')
-                        employee_count = companyResolutionResult.get('staffCount')
-                        company_url = companyResolutionResult.get('url')
 
-            return (job_title, company_name, employee_count, company_url)
+            return (job_title, company_name)
         else:
             attempts += 1
             time.sleep(delay)
@@ -112,7 +108,7 @@ def extract_company_info(job_posting_id, max_retries=3, delay=1):
     return None, None
 
 def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text_placeholder):
-    result_dataframe = pd.DataFrame(columns=['Hiring Team', 'Förnamn', 'Efternamn', 'LinkedIn URL', 'Jobbtitel som sökes', 'Jobbannons-url', 'Företag', 'Antal anställda', 'Företagssegment', 'Företags-url'])
+    result_dataframe = pd.DataFrame(columns=['Förnamn', 'Efternamn', 'LinkedIn URL', 'Jobbtitel som sökes', 'Företag'])
     print(f"Keyword: {keyword}")
     batches = split_total_into_batches_of_100(total_results)
     print(batches)
@@ -143,30 +139,15 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
             for job_posting in job_posting_list:
                 print(f"Processing job posting #{job_posting}")
                 linkedin_url, full_name = extract_linkedin_url_and_full_name(job_posting)
-                job_title, company_name, employee_count, company_url = extract_company_info(job_posting)
-
-                # Fetch company segment from company linkedin url
-                try:
-                    print(company_url)
-                    company_response = requests.get(company_url)
-                    webpage_html = company_response.text
-                    soup = BeautifulSoup(webpage_html, 'html.parser')
-                    div_elements = soup.find_all('div', class_='org-top-card-summary-info-list__info-item')
-                    print(div_elements)
-                    # [0].get_text(strip=True)
-                    company_segment = None
-                except:
-                    print("Error fetching company segment")
-                    company_segment = None
+                job_title, company_name = extract_job_title_and_company_name(job_posting)
             
                 if linkedin_url and full_name:
                     first_name, last_name = split_and_clean_full_name(full_name)
 
                     print(f"#{counter} : LinkedIn URL: {linkedin_url}, Name: {full_name}, Job title: {job_title}, Company: {company_name}")
 
-                    new_row = {'Hiring Team': 'Ja', 'Förnamn': first_name, 'Efternamn': last_name, 'LinkedIn URL': linkedin_url,
-                            'Jobbtitel som sökes': job_title, 'Jobbannons-url': f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting}&geoId=105117694&keywords=sem%20seo&location=Sweden", 
-                            'Företag': company_name, 'Antal anställda': employee_count, 'Företagssegment': company_segment, 'Företags-url': company_url}
+                    new_row = {'Förnamn': first_name, 'Efternamn': last_name, 'LinkedIn URL': linkedin_url,
+                            'Jobbtitel som sökes': job_title, 'Företag': company_name}
 
                     # Check if the new_row is a duplicate
                     if new_row not in temp_data_list:
@@ -174,26 +155,7 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
                     else:
                         print("Duplicate found. Skipping.")  
                 else:
-                    print(f"#{counter} : Could not fetch name and/or url. LinkedIn URL: {linkedin_url}, Name: {full_name}. Trying other way...")
-
-                    # Look through the company page
-                    company_keyword = None
-                    if employee_count < 100:
-                        company_keyword = "CEO"
-                    else:
-                        company_keyword = "CMO"
-
-                    people_page = f"{company_url}/people/keywords={company_keyword}"
-
-                    new_row = {'Hiring Team': 'Nej', 'Förnamn': None, 'Efternamn': None, 'LinkedIn URL': None,
-                            'Jobbtitel som sökes': job_title, 'Jobbannons-url': f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting}&geoId=105117694&keywords=sem%20seo&location=Sweden", 
-                            'Företag': company_name, 'Antal anställda': employee_count, 'Företagssegment': company_segment, 'Företags-url': company_url}
-
-                    # Check if the new_row is a duplicate
-                    if new_row not in temp_data_list:
-                        temp_data_list.append(new_row)
-                    else:
-                        print("Duplicate found. Skipping.")  
+                    print(f"#{counter} : Could not fetch name and/or url. LinkedIn URL: {linkedin_url}, Name: {full_name}")
 
                 counter += 1
                     
