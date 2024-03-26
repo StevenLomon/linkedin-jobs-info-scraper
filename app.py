@@ -1,13 +1,8 @@
-import time, os, re, pickle, random, requests, math, sys
+import time, re, requests
 import pandas  as pd
 import streamlit as st
 from rich import print, print_json
 from io import BytesIO
-
-# print(sys.executable)
-# print(sys.path)
-
-input_url = "https://www.linkedin.com/jobs/search/?currentJobId=3850239811&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
 
 def get_total_number_of_results(response, max_retries=3, delay=1):
     attempts = 0
@@ -114,84 +109,73 @@ def extract_job_title_and_company_name(job_posting_id, max_retries=3, delay=1):
 
 def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text_placeholder):
     result_dataframe = pd.DataFrame(columns=['Förnamn', 'Efternamn', 'LinkedIn URL', 'Jobbtitel', 'Företag'])
+    print(f"Keyword: {keyword}")
     batches = split_total_into_batches_of_100(total_results)
-    print(f"batches: {batches}")
+    print(batches)
 
     print(f"Starting the scrape! {total_results} to scrape")
     counter = 0
     temp_data_list = []
     unique_ids = set()
+    all_ids = []
 
-    # Outer loop for batches
-    for start, stop in batches:
-        print(f"Start: {start}, Stop: {stop}")
+    for i, (start, stop) in enumerate(batches):
+        # Construct the API request URL using `start` and the `batch_size`
         batch_size = stop - start
-        print(f"batch size: {batch_size}")
         api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={batch_size}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
-        print(f"req url: {api_request_url}")
 
         payload = {}
         headers = {
         'csrf-token': 'ajax:5371233139676576627',
         'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
         }
-
-        max_retries = 3
-        delay = 1
-        attempts = 0
         
-        while attempts < max_retries:
-            response = requests.request("GET", api_request_url, headers=headers, data=payload)
-            if response.status_code == 200:
-                job_posting_list = get_job_posting_ids(response)
+        response = requests.request("GET", api_request_url, headers=headers, data=payload)
+        
+        if response.status_code == 200:
+            # Fetch the job posting IDs from the response
+            job_posting_list = get_job_posting_ids(response)
+            all_ids.extend(job_posting_list)
 
-                for job_posting in job_posting_list:
-                    print(f"Processing job posting #{job_posting}")
-                    if job_posting in unique_ids:
-                        print("Id already processed. Skipping")
+            # Process the batch
+            for job_posting in job_posting_list:
+                print(f"Processing job posting #{job_posting}")
+                linkedin_url, full_name = extract_linkedin_url_and_full_name(job_posting)
+            
+                if linkedin_url and full_name:
+                    first_name, last_name = split_and_clean_full_name(full_name)
+
+                    # Only if we have a name and linkedIn URL (there is a hiring team) do we need to 
+                    # check for job title and company name
+                    job_title, company_name = extract_job_title_and_company_name(job_posting)
+
+                    print(f"#{counter} : LinkedIn URL: {linkedin_url}, Name: {full_name}, Job title: {job_title}, Company: {company_name}")
+
+                    new_row = {'Förnamn': first_name, 'Efternamn': last_name, 'LinkedIn URL': linkedin_url,
+                            'Jobbtitel': job_title, 'Företag': company_name}
+
+                    # Check if the new_row is a duplicate
+                    if new_row not in temp_data_list:
+                        temp_data_list.append(new_row)
                     else:
-                        print("New id. Processing job posting")
-                        unique_ids.add(job_posting)
-                        linkedin_url, full_name = extract_linkedin_url_and_full_name(job_posting)
-            
-                        if linkedin_url and full_name:
-                            first_name, last_name = split_and_clean_full_name(full_name)
+                        print("Duplicate found. Skipping.")  
+                else:
+                    print(f"#{counter} : Could not fetch name and/or url. LinkedIn URL: {linkedin_url}, Name: {full_name}")
 
-                            # Only if we have a name and linkedIn URL (there is a hiring team) do we need to 
-                            # check for job title and company name
-                            job_title, company_name = extract_job_title_and_company_name(job_posting)
-
-                            print(f"#{counter} : LinkedIn URL: {linkedin_url}, Name: {full_name}, Job title: {job_title}, Company: {company_name}")
-
-                            new_row = {'Förnamn': first_name, 'Efternamn': last_name, 'LinkedIn URL': linkedin_url,
-                                    'Jobbtitel': job_title, 'Företag': company_name}
-
-                            # Check if the new_row is a duplicate
-                            if new_row not in temp_data_list:
-                                temp_data_list.append(new_row)
-                            else:
-                                print("Duplicate found. Skipping.")  
-                        else:
-                            print(f"#{counter} : Could not fetch name and/or url. LinkedIn URL: {linkedin_url}, Name: {full_name}")
-                    counter += 1
+                counter += 1
                     
-                    # Update the progress bar and text after each job posting is processed
-                    progress = counter / total_results
-                    progress = min(max(progress, 0.0), 1.0)  # Clamp the progress value
-                    progress_bar.progress(progress)
-                    text_placeholder.text(f"Processing {counter} / {total_results}")
-            
-                    if counter >= total_results:
-                        break
-                if counter >= total_results:
-                    break
-                
-            else:
-                attempts += 1
-                time.sleep(delay)  # Wait before the next attempt
+                # Update the progress bar and text after each job posting is processed
+                progress = counter / total_results
+                progress = min(max(progress, 0.0), 1.0)  # Clamp the progress value
+                progress_bar.progress(progress)
+                text_placeholder.text(f"Processing {counter} / {total_results}")
 
-        if counter >= total_results:
-            break
+            # Print the counts after each request
+            print(f"After request batch #{i+1}: Total IDs fetched - {len(all_ids)}. Unique IDs - {len(set(all_ids))}")
+            time.sleep(1) # Wait 1 second until next batch
+        else:
+            print(f"Request for batch {start}-{stop} failed with status code: {response.status_code}")
+            # Handle the failure accordingly, e.g., retry or log error
 
     # Final update outside the loop to ensure progress is marked complete
     text_placeholder.text(f"Processing completed! Total processed: {counter} / {total_results}")
@@ -201,9 +185,10 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
     new_data_df = pd.DataFrame(temp_data_list)
     result_dataframe = pd.concat([result_dataframe, new_data_df], ignore_index=True)
 
-    print(f"Done. Total number of ids: {total_number_of_results}\nUnique ids: {len(unique_ids)}\nJobs with Hiring team available to scrape: {len(result_dataframe)}")
+    print(f"Done. Results:\nTotal found in the request: {total_results}\nTotal fetched succesfully: {len(all_ids)}\nTotal unique ids: {len(set(all_ids))}\nTotal hiring team available: {len(result_dataframe)}")
 
-    return result_dataframe
+    # Return the resulting dataframe as well as a set with everything we print out after the scrape. Bad practice, I know :))
+    return [result_dataframe, (len(all_ids), len(set(all_ids)), len(result_dataframe))]
 
 def generate_csv(dataframe, result_name):
     if result_name.endswith('.csv'):
@@ -258,13 +243,12 @@ if st.button('Generate File'):
             response = requests.request("GET", api_request_url, headers=headers, data=payload)
             if response.status_code == 200:
                 total_number_of_results = get_total_number_of_results(response)
-                print(total_number_of_results)
-                print(type(total_number_of_results))
 
                 if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
                     total_number_of_results = int(max_results_to_check)
 
-                scraped_data_df = scrape_linkedin_and_show_progress(keyword, total_number_of_results, progress_bar, text_placeholder)
+                scraped_data_df, (total_fetched, total_unique, total_hiring_team) = scrape_linkedin_and_show_progress(keyword, total_number_of_results, progress_bar, text_placeholder)
+                st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
 
                 if file_format == 'CSV':
                     csv_file = generate_csv(scraped_data_df, result_name)
@@ -449,3 +433,95 @@ if st.button('Generate File'):
 # else:
 #     text_placeholder.text(f"Processing completed! Total processed: {counter} / {total_results}")
 #     progress_bar.progress(1.0)  # Progress bar reflects actual number processed
+        
+# batches = split_total_into_batches_of_100(total_results)
+# print(f"batches: {batches}")
+
+# print(f"Starting the scrape! {total_results} to scrape")
+# counter = 0
+# temp_data_list = []
+# unique_ids = set()
+
+# # Outer loop for batches
+# for start, stop in batches:
+#     print(f"Start: {start}, Stop: {stop}")
+#     batch_size = stop - start
+#     print(f"batch size: {batch_size}")
+#     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={batch_size}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
+#     print(f"req url: {api_request_url}")
+
+#     payload = {}
+#     headers = {
+#     'csrf-token': 'ajax:5371233139676576627',
+#     'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
+#     }
+
+#     max_retries = 3
+#     delay = 1
+#     attempts = 0
+    
+#     while attempts < max_retries:
+#         response = requests.request("GET", api_request_url, headers=headers, data=payload)
+#         if response.status_code == 200:
+#             job_posting_list = get_job_posting_ids(response)
+
+#             for job_posting in job_posting_list:
+#                 print(f"Processing job posting #{job_posting}")
+#                 if job_posting in unique_ids:
+#                     print("Id already processed. Skipping")
+#                 else:
+#                     print("New id. Processing job posting")
+#                     unique_ids.add(job_posting)
+#                     linkedin_url, full_name = extract_linkedin_url_and_full_name(job_posting)
+        
+#                     if linkedin_url and full_name:
+#                         first_name, last_name = split_and_clean_full_name(full_name)
+
+#                         # Only if we have a name and linkedIn URL (there is a hiring team) do we need to 
+#                         # check for job title and company name
+#                         job_title, company_name = extract_job_title_and_company_name(job_posting)
+
+#                         print(f"#{counter} : LinkedIn URL: {linkedin_url}, Name: {full_name}, Job title: {job_title}, Company: {company_name}")
+
+#                         new_row = {'Förnamn': first_name, 'Efternamn': last_name, 'LinkedIn URL': linkedin_url,
+#                                 'Jobbtitel': job_title, 'Företag': company_name}
+
+#                         # Check if the new_row is a duplicate
+#                         if new_row not in temp_data_list:
+#                             temp_data_list.append(new_row)
+#                         else:
+#                             print("Duplicate found. Skipping.")  
+#                     else:
+#                         print(f"#{counter} : Could not fetch name and/or url. LinkedIn URL: {linkedin_url}, Name: {full_name}")
+#                 counter += 1
+                
+#                 # Update the progress bar and text after each job posting is processed
+#                 progress = counter / total_results
+#                 progress = min(max(progress, 0.0), 1.0)  # Clamp the progress value
+#                 progress_bar.progress(progress)
+#                 text_placeholder.text(f"Processing {counter} / {total_results}")
+        
+#                 if counter >= total_results:
+#                     break
+#             if counter >= total_results:
+#                 break
+            
+#         else:
+#             attempts += 1
+#             time.sleep(delay)  # Wait before the next attempt
+
+#     if counter >= total_results:
+#         break
+
+# # Final update outside the loop to ensure progress is marked complete
+# text_placeholder.text(f"Processing completed! Total processed: {counter} / {total_results}")
+# progress_bar.progress(1.0)  # Ensure the progress bar is full at completion
+
+# # Convert the list of dictionaries to a DataFrame and concatenate it with the existing result_dataframe
+# new_data_df = pd.DataFrame(temp_data_list)
+# result_dataframe = pd.concat([result_dataframe, new_data_df], ignore_index=True)
+
+# print(f"Done. Total number of ids: {total_number_of_results}\nUnique ids: {len(unique_ids)}\nJobs with Hiring team available to scrape: {len(result_dataframe)}")
+
+#linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
+#keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
