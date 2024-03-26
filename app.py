@@ -3,7 +3,6 @@ import pandas  as pd
 import streamlit as st
 from rich import print, print_json
 from io import BytesIO
-from bs4 import BeautifulSoup
 
 def get_total_number_of_results(response, max_retries=3, delay=1):
     attempts = 0
