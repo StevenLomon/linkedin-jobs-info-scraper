@@ -214,11 +214,10 @@ st.title('LinkedIn Job search URL to CSV Generator')
 # User input for LinkedIn URL
 linkedin_job_url = st.text_input('Enter URL from the LinkedIn Job search:', '')
 result_name = st.text_input('Enter a name for the resulting csv/Excel file:', '')
-max_results_to_check = st.text_input('Enter maximum amounts of jobs to check (leave blank to scrape all available jobs):', '')
+max_results_to_check = st.text_input('Enter maximum amounts of jobs to check (leave blank to scrape all available jobs for the query):', '')
 
 # Radio button to choose the file format
-file_format = st.radio("Choose the file format for download:", ('CSV', 'xslx'))
-st.text("Excel format is currently not working, it is being debugged")
+file_format = st.radio("Choose the file format for download:", ('csv', 'xlsx'))
 
 # Button to the result file
 if st.button('Generate File'):
@@ -250,15 +249,15 @@ if st.button('Generate File'):
                 scraped_data_df, (total_fetched, total_unique, total_hiring_team) = scrape_linkedin_and_show_progress(keyword, total_number_of_results, progress_bar, text_placeholder)
                 st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
 
-                if file_format == 'CSV':
+                if file_format == 'csv':
                     csv_file = generate_csv(scraped_data_df, result_name)
                     with open(csv_file, "rb") as file:
                         st.download_button(label="Download CSV", data=file, file_name=csv_file, mime='text/csv')
                     st.success(f'CSV file generated: {csv_file}')
                     break
-                elif file_format == 'Excel':
+                elif file_format == 'xlsx':
                     excel_file = generate_excel(scraped_data_df, result_name)
-                    st.download_button(label="Download Excel", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.ms-excel')
+                    st.download_button(label="Download Excel", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
                     st.success(f'Excel file generated: {result_name}.xlsx')
                     break
             else:
