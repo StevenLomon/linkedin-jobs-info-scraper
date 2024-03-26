@@ -243,7 +243,7 @@ def generate_excel(dataframe, result_name):
     output.seek(0)
     return output
 
-st.title('LinkedIn Job search URL to CSV Generator')
+st.title('LinkedIn Job search URL to CSV Generator V2')
 
 # User input for LinkedIn URL
 linkedin_job_url = st.text_input('Enter URL from the LinkedIn Job search:', '')
