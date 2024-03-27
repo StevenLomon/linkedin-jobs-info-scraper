@@ -3,7 +3,6 @@ import pandas  as pd
 import streamlit as st
 from rich import print, print_json
 from io import BytesIO
-from bs4 import BeautifulSoup
 
 def get_total_number_of_results(response, max_retries=3, delay=1):
     attempts = 0
@@ -188,14 +187,9 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
                 job_title, company_name, employee_count, company_url = extract_company_info(job_posting)
                 company_segment = None
                 if company_name is not None:
-                    #company_segment = extract_company_segment(job_posting)
-                    response = requests.get(company_url)
-                    webpage_html = response.text
-                    soup = BeautifulSoup(webpage_html, 'html.parser')
-                    div_elements = soup.find_all('div', class_='org-top-card-summary-info-list__info-item')
-                    print(f"div el: {div_elements}")
-                # else:
-                #     company_segment = None
+                    company_segment = extract_company_segment(job_posting)
+                else:
+                    company_segment = None
             
                 if linkedin_url and full_name:
                     first_name, last_name = split_and_clean_full_name(full_name)
