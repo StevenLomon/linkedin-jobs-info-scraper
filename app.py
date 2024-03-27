@@ -110,7 +110,47 @@ def extract_company_info(job_posting_id, max_retries=3, delay=1):
             attempts += 1
             time.sleep(delay)
     
-    return None, None
+    return None, None, None, None
+
+def extract_company_segment(job_posting_id, max_retries=3, delay=1):
+    api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{job_posting_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed"
+    payload = {}
+    headers = {
+    'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; lang=v=2&lang=en-us; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; liap=true; JSESSIONID="ajax:5371233139676576627"; AnalyticsSyncHistory=AQIdocYcGpv1SwAAAY50EHPdIJOXJnTMkM1IqKRCN-xjtebWOGQgAfFoubhez_GPLJtHRjCZyED3AWxvqFIYaQ; lms_ads=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lms_analytics=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq92w%252bmvbGBUtNoqdDDGU6K1bm1h82%252bvTwd5d9RxSjyqHKve2TN%252fU1qbwaJVqqH1GEuDg0a0qlsVjDyu6M%252bN5RV%252fIXe2ZN%252flEMI%252fBHHwg3PGu9dktCK7gumT5arLAvFaxC3bmPIHli9%252bB0setOxl6WF4LiYsVd%252bVJpbksyOh%252ffPp89f24dvjSFhWT6wkNTleVQJ4VuwhZF5JiBbSfQxz%252bYWc%253d; sdsc=22%3A1%2C1711462099933%7EJAPP%2C0AgLnCcsJR96aeTsG%2FE69adrVVF4%3D; __cf_bm=XUaVjb_yxnwanRjtokE8Horyb443hwji7VAfjojIzis-1711471681-1.0.1.1-PeTZcP10fT6yKv96rtf5ev8f2Zf77nsmyiuf851hQReBUzs4tIaF.U121htJ7.CGjWCFAz.utMUFimvs1TjfFA; li_mc=MTsyMTsxNzExNDcxNzkyOzI7MDIxIv706UPGtRPQ+6CckOOl29O91ZeGpStrdGS1x1TEp0o=; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19808%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712076989%7C6%7CMCAAMB-1712076989%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1711479389s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; UserMatchHistory=AQKQHbt-oTRe4AAAAY57suv6OCAUqZNXKSczMTZ2g5qZz1s58prBJ5YjvaCqCQZBk7UWzEzIEiBH0yiCLOjOD1wkEG1TDRjHRPGQjG8Y_3DMsgyAX7aZeizllMAwDh-nEVgmPtyLnB-hpC2GXKgivEQrzz-7_OfZ7yVOMW0t-wO3vpjJAjtaOcTtL2tsmqrC9OEtuI_jy1RFB91h0_Cu3ioKe8xb6Jhegs0qXP6ynuQY6BDHbWJeQrzvKMUdPbtJ9QADbzHPr3NEk3Z4LE_cpcIsC2HDdCcwWhUDJ78MmstZIdNfTZ0nVHVPUGVP-Hvro_UgG38; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4158:u=247:x=1:i=1711472308:t=1711540940:v=2:sig=AQFtWBAyB43Zq72h20RayXgdxThybm5u"; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzExNTI3ODYxOzI7MDIxqzhri+244uJRczErlO5om44jUAjTBvo/ifD7lHsMg9E=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4159:u=247:x=1:i=1711476075:t=1711562169:v=2:sig=AQEJacPpzSoZYeIhM-ukSSOrBExvo6Hs"',
+    'csrf-token': 'ajax:5371233139676576627'
+    }
+
+    for attempt in range(max_retries):
+        try:
+            response = requests.request("GET", api_request_url, headers=headers, data=payload)
+            if response.status_code == 200:
+                company_segment = None
+
+                data = response.json().get('data', {})
+                if data:
+                    jobsDashJobPostingDetailSectionsByCardSectionTypes = data.get('jobsDashJobPostingDetailSectionsByCardSectionTypes', {})
+                    if jobsDashJobPostingDetailSectionsByCardSectionTypes:
+                        elements = jobsDashJobPostingDetailSectionsByCardSectionTypes.get('elements', [])
+                        if elements:
+                            jobPostingDetailSection = elements[0].get('jobPostingDetailSection', [])
+                            if jobPostingDetailSection:
+                                companyCardV2 = jobPostingDetailSection[0].get('companyCardV2', {})
+                                if companyCardV2:
+                                    company = companyCardV2.get('company', {})
+                                    if company:
+                                        industryV2Taxonomy = company.get('industryV2Taxonomy', [])
+                                        if industryV2Taxonomy:
+                                            company_segment = industryV2Taxonomy[0].get('name')
+                                            return company_segment
+            else:
+                    print(f"Received status code {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {e}")
+
+        time.sleep(delay)
+    
+    return None
+
 
 def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text_placeholder):
     result_dataframe = pd.DataFrame(columns=['Hiring Team', 'Förnamn', 'Efternamn', 'LinkedIn URL', 'Jobbtitel som sökes', 'Jobbannons-url', 'Företag', 'Antal anställda', 'Företagssegment', 'Företags-url'])
@@ -119,6 +159,7 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
     print(batches)
 
     print(f"Starting the scrape! {total_results} to scrape")
+    start_time = time.time()
     counter = 0
     temp_data_list = []
     all_ids = []
@@ -145,20 +186,16 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
                 print(f"Processing job posting #{job_posting}")
                 linkedin_url, full_name = extract_linkedin_url_and_full_name(job_posting)
                 job_title, company_name, employee_count, company_url = extract_company_info(job_posting)
-
-                # Fetch company segment from company linkedin url
-                try:
-                    print(company_url)
-                    company_response = requests.get(company_url)
-                    webpage_html = company_response.text
+                company_segment = None
+                if company_name is not None:
+                    #company_segment = extract_company_segment(job_posting)
+                    response = requests.get(company_url)
+                    webpage_html = response.text
                     soup = BeautifulSoup(webpage_html, 'html.parser')
                     div_elements = soup.find_all('div', class_='org-top-card-summary-info-list__info-item')
-                    print(div_elements)
-                    # [0].get_text(strip=True)
-                    company_segment = None
-                except:
-                    print("Error fetching company segment")
-                    company_segment = None
+                    print(f"div el: {div_elements}")
+                # else:
+                #     company_segment = None
             
                 if linkedin_url and full_name:
                     first_name, last_name = split_and_clean_full_name(full_name)
@@ -177,14 +214,14 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
                 else:
                     print(f"#{counter} : Could not fetch name and/or url. LinkedIn URL: {linkedin_url}, Name: {full_name}. Trying other way...")
 
-                    # Look through the company page
-                    company_keyword = None
-                    if employee_count < 100:
-                        company_keyword = "CEO"
-                    else:
-                        company_keyword = "CMO"
+                    # # Look through the company page
+                    # company_keyword = None
+                    # if employee_count < 100:
+                    #     company_keyword = "CEO"
+                    # else:
+                    #     company_keyword = "CMO"
 
-                    people_page = f"{company_url}/people/keywords={company_keyword}"
+                    # people_page = f"{company_url}/people/keywords={company_keyword}"
 
                     new_row = {'Hiring Team': 'Nej', 'Förnamn': None, 'Efternamn': None, 'LinkedIn URL': None,
                             'Jobbtitel som sökes': job_title, 'Jobbannons-url': f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting}&geoId=105117694&keywords=sem%20seo&location=Sweden", 
@@ -210,6 +247,9 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
         else:
             print(f"Request for batch {start}-{stop} failed with status code: {response.status_code}")
             # Handle the failure accordingly, e.g., retry or log error
+
+    end_time = time.time()
+    print(f"Everything processed! Took {end_time - start_time} seconds\n")
 
     # Final update outside the loop to ensure progress is marked complete
     text_placeholder.text(f"Processing completed! Total processed: {counter} / {total_results}")
