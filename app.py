@@ -196,12 +196,11 @@ def extract_non_hiring_person(keyword, company_id, company_name, max_retries=3, 
             bio = primarySubtitle.get('text')
         linkedin_url = person.get('navigationUrl', {})
         linkedin_url_trimmed = re.search(r'^(.*?)\?', linkedin_url).group(1)
-        # if company_name in bio:
         processed.append((full_name, bio, linkedin_url_trimmed))
 
     return processed
 
-def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text_placeholder):
+def scrape_linkedin_and_show_progress(keyword, total_results, employee_threshold, less_than_keywords, more_than_keywords, progress_bar, text_placeholder):
     result_dataframe = pd.DataFrame(columns=['Hiring Team', 'Förnamn', 'Efternamn', 'Bio', 'LinkedIn URL', 'Jobbtitel som sökes', 'Jobbannons-url', 'Företag', 'Antal anställda', 'Företagssegment', 'Företags-url'])
     print(f"Keyword: {keyword}")
     batches = split_total_into_batches_of_100(total_results)
@@ -210,6 +209,7 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
     print(f"Starting the scrape! {total_results} to scrape")
     start_time = time.time()
     counter = 0
+    hiring_team_counter = 0
     temp_data_list = []
     all_ids = []
 
@@ -253,6 +253,7 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
                     # Check if the new_row is a duplicate
                     if new_row not in temp_data_list:
                         temp_data_list.append(new_row)
+                        hiring_team_counter += 1
                     else:
                         print("Duplicate found. Skipping.")  
                 else:
@@ -261,12 +262,13 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
                     # Look through the company page
                     company_keyword = None
                     try:
-                        if employee_count < 100:
-                            company_keyword = "ceo"
+                        if employee_count <= {employee_threshold}:
+                            company_keyword = less_than_keywords
                         else:
-                            company_keyword = "cmo"
+                            company_keyword = more_than_keywords
 
                         print(f"Keyword: {company_keyword}")
+                        print(f"Company name: {company_name}")
                         print(f"Company ID: {companyID}")
 
                         company_people = extract_non_hiring_person(company_keyword, companyID, company_name)
@@ -326,7 +328,7 @@ def scrape_linkedin_and_show_progress(keyword, total_results, progress_bar, text
     new_data_df = pd.DataFrame(temp_data_list)
     result_dataframe = pd.concat([result_dataframe, new_data_df], ignore_index=True)
 
-    print(f"Done. Results:\nTotal found in the request: {total_results}\nTotal fetched succesfully: {len(all_ids)}\nTotal unique ids: {len(set(all_ids))}\nTotal hiring team available: {len(result_dataframe)}")
+    print(f"Done. Results:\nTotal found in the request: {total_results}\nTotal fetched succesfully: {len(all_ids)}\nTotal unique ids: {len(set(all_ids))}\nTotal hiring team available: {hiring_team_counter}")
 
     # Return the resulting dataframe as well as a set with everything we print out after the scrape. Bad practice, I know :))
     return [result_dataframe, (len(all_ids), len(set(all_ids)), len(result_dataframe))]
@@ -356,6 +358,10 @@ st.title('LinkedIn Job search URL to CSV Generator V2')
 linkedin_job_url = st.text_input('Enter URL from the LinkedIn Job search:', '')
 result_name = st.text_input('Enter a name for the resulting csv/Excel file:', '')
 max_results_to_check = st.text_input('Enter maximum amounts of jobs to check (leave blank to scrape all available jobs for the query):', '')
+st.write("If there is no Hiring Team available and the company has less than or equal to")
+employee_threshold = st.number_input("", min_value=1, value=100, step=1, format="%d")
+less_than_keywords = st.text_input('employees, search the company for (separate keywords with comma):', '')
+more_than_keywords = st.text_input('If it has more, search the company for: (separate keywords with comma)', '')
 
 # Radio button to choose the file format
 file_format = st.radio("Choose the file format for download:", ('csv', 'xlsx'))
@@ -384,10 +390,7 @@ if st.button('Generate File'):
             if response.status_code == 200:
                 total_number_of_results = get_total_number_of_results(response)
 
-                if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
-                    total_number_of_results = int(max_results_to_check)
-
-                scraped_data_df, (total_fetched, total_unique, total_hiring_team) = scrape_linkedin_and_show_progress(keyword, total_number_of_results, progress_bar, text_placeholder)
+                scraped_data_df, (total_fetched, total_unique, total_hiring_team) = scrape_linkedin_and_show_progress(keyword, total_number_of_results, employee_threshold, less_than_keywords, more_than_keywords, progress_bar, text_placeholder)
                 st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
 
                 if file_format == 'csv':
@@ -665,10 +668,3 @@ if st.button('Generate File'):
 
 #linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
 #keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
-        
-api_request_url = "https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:ceo,flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List(15261053)),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:12)&queryId=voyagerSearchDashClusters.95b56a377280ee0fdf38866e2fa1abbb""
-api_request_url = "https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:cmo,flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List(10787)),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:12)&queryId=voyagerSearchDashClusters.95b56a377280ee0fdf38866e2fa1abbb"
-
-
-
-
