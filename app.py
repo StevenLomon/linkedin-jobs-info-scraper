@@ -194,8 +194,12 @@ def extract_non_hiring_person(keyword, company_id, company_name, max_retries=3, 
         primarySubtitle = person.get('primarySubtitle', {})
         if primarySubtitle:
             bio = primarySubtitle.get('text')
-        linkedin_url = person.get('navigationUrl', {})
-        linkedin_url_trimmed = re.search(r'^(.*?)\?', linkedin_url).group(1)
+        try:
+            linkedin_url = person.get('navigationUrl', {})
+            linkedin_url_trimmed = re.search(r'^(.*?)\?', linkedin_url).group(1)
+        except:
+            print("Failed to fetch LinkedIn url")
+            pass
         processed.append((full_name, bio, linkedin_url_trimmed))
 
     return processed
@@ -260,18 +264,21 @@ def scrape_linkedin_and_show_progress(keyword, total_results, employee_threshold
                     print(f"#{counter} : Could not fetch name and/or url from Hiring team card. Trying other way...")
 
                     # Look through the company page
-                    company_keyword = None
+                    company_keywords = None
                     try:
-                        if employee_count <= {employee_threshold}:
-                            company_keyword = less_than_keywords
+                        if employee_count <= employee_threshold:
+                            company_keywords = less_than_keywords
                         else:
-                            company_keyword = more_than_keywords
+                            company_keywords = more_than_keywords
 
-                        print(f"Keyword: {company_keyword}")
+                        print(f"Keywords: {company_keywords}")
                         print(f"Company name: {company_name}")
                         print(f"Company ID: {companyID}")
 
-                        company_people = extract_non_hiring_person(company_keyword, companyID, company_name)
+                        url_formatted_keywords = company_keywords.replace(', ', '%20OR%20').strip()
+                        print(url_formatted_keywords)
+
+                        company_people = extract_non_hiring_person(url_formatted_keywords, companyID, company_name)
 
                         print(f"Company people: {company_people}")
 
@@ -290,8 +297,8 @@ def scrape_linkedin_and_show_progress(keyword, total_results, employee_threshold
                                 temp_data_list.append(new_row)
                             else:
                                 print("Duplicate found. Skipping.")  
-                    except:
-                        print("Error")
+                    except requests.exceptions.RequestException as e:
+                        print(f"Error: {e}")
                         # new_row = {'Hiring Team': 'Nej', 'Förnamn': None, 'Efternamn': None, 'Bio': None, 'LinkedIn URL': None,
                         #             'Jobbtitel som sökes': job_title, 'Jobbannons-url': f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting}&geoId=105117694&keywords=sem%20seo&location=Sweden", 
                         #             'Företag': company_name, 'Antal anställda': None, 'Företagssegment': company_segment, 'Företags-url': company_url}
@@ -331,7 +338,7 @@ def scrape_linkedin_and_show_progress(keyword, total_results, employee_threshold
     print(f"Done. Results:\nTotal found in the request: {total_results}\nTotal fetched succesfully: {len(all_ids)}\nTotal unique ids: {len(set(all_ids))}\nTotal hiring team available: {hiring_team_counter}")
 
     # Return the resulting dataframe as well as a set with everything we print out after the scrape. Bad practice, I know :))
-    return [result_dataframe, (len(all_ids), len(set(all_ids)), len(result_dataframe))]
+    return [result_dataframe, (len(all_ids), len(set(all_ids)), hiring_team_counter)]
 
 def generate_csv(dataframe, result_name):
     if result_name.endswith('.csv'):
@@ -359,7 +366,7 @@ linkedin_job_url = st.text_input('Enter URL from the LinkedIn Job search:', '')
 result_name = st.text_input('Enter a name for the resulting csv/Excel file:', '')
 max_results_to_check = st.text_input('Enter maximum amounts of jobs to check (leave blank to scrape all available jobs for the query):', '')
 st.write("If there is no Hiring Team available and the company has less than or equal to")
-employee_threshold = st.number_input("", min_value=1, value=100, step=1, format="%d")
+employee_threshold = st.number_input("Employee Threshold", min_value=1, value=100, step=1, format="%d", label_visibility="collapsed")
 less_than_keywords = st.text_input('employees, search the company for (separate keywords with comma):', '')
 more_than_keywords = st.text_input('If it has more, search the company for: (separate keywords with comma)', '')
 
@@ -389,6 +396,9 @@ if st.button('Generate File'):
             response = requests.request("GET", api_request_url, headers=headers, data=payload)
             if response.status_code == 200:
                 total_number_of_results = get_total_number_of_results(response)
+
+                if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
+                    total_number_of_results = int(max_results_to_check)
 
                 scraped_data_df, (total_fetched, total_unique, total_hiring_team) = scrape_linkedin_and_show_progress(keyword, total_number_of_results, employee_threshold, less_than_keywords, more_than_keywords, progress_bar, text_placeholder)
                 st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
