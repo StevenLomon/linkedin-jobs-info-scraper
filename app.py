@@ -676,5 +676,63 @@ if st.button('Generate File'):
 
 # print(f"Done. Total number of ids: {total_number_of_results}\nUnique ids: {len(unique_ids)}\nJobs with Hiring team available to scrape: {len(result_dataframe)}")
 
-#linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
-#keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
+
+        
+linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
+keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
+
+total_results = 367
+batches = split_total_into_batches_of_100(total_results)
+print(batches)
+
+print(f"Starting the scrape! {total_results} to scrape with these api request URLs:")
+start_time = time.time()
+counter = 0
+hiring_team_counter = 0
+temp_data_list = []
+all_ids = []
+
+urls = []
+for i, (start, stop) in enumerate(batches):
+    batch_size = stop - start
+    api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={batch_size}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
+    urls.append(api_request_url)
+
+print(urls)
+
+async def fetch(sem, session, url, headers, payload, max_retries=3, delay=1):
+    async with sem:
+        for attempt in range(max_retries):
+            try:
+                async with session.get(url, headers=headers, json=payload) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data
+                    elif response.status == 500:
+                        print(f"Attempt {attempt + 1}: Server Error for URL {url}. Retrying in 1 second...")
+                        await asyncio.sleep(1)
+                    else:
+                        print(f"Attempt {attempt + 1}: Other Error for URL {url}. Retrying in 1 second...")
+                        await asyncio.sleep(1)
+            except aiohttp.ClientError as e:
+                print(f"Request failed: {e}")
+                await asyncio.sleep(1)
+        print(f"Failed to fetch {url} after 3 attempts.")
+        return None  # Or handle failed fetches as needed
+
+async def fetch_all(urls):
+    sem = asyncio.Semaphore(5)  # Adjust the number as needed. Tried len(batches)
+    async with aiohttp.ClientSession() as session:
+        payload = {}
+        headers = {
+        'csrf-token': 'ajax:5371233139676576627',
+        'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
+        }
+        tasks = [asyncio.create_task(fetch(sem, session, url, headers, payload)) for url in urls]
+        return await asyncio.gather(*tasks)
+
+results = asyncio.run(fetch_all(urls))
+
+for result in results:
+    # process the result which is a dict obtained from the JSON response
+    print(result)
