@@ -4,10 +4,10 @@ import streamlit as st
 from rich import print, print_json
 from io import BytesIO
 
-def get_total_number_of_results(response, max_retries=3, delay=1):
+def get_total_number_of_results(response_json, max_retries=3, delay=1):
     attempts = 0
     while attempts < max_retries:
-        paging = response.json().get('paging', {})
+        paging = response_json.get('paging', {})
 
         total = None
         if paging:
@@ -27,8 +27,8 @@ def split_total_into_batches_of_100(total):
         batches[-1] = (batches[-1][0], total)
     return batches
 
-def get_job_posting_ids(response):
-    metadata = response.json().get('metadata', {})
+def get_job_posting_ids(response_json):
+    metadata = response_json.get('metadata', {})
     jobCardPrefetchQueries = metadata.get('jobCardPrefetchQueries', [])
     job_posting_ids_list = []
 
@@ -150,7 +150,7 @@ def extract_company_segment(job_posting_id, max_retries=3, delay=1):
 
                 return company_segment
             else:
-                    print(f"Received status code {response.status_code}")
+                print(f"Received status code {response.status_code}")
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
 
@@ -158,8 +158,8 @@ def extract_company_segment(job_posting_id, max_retries=3, delay=1):
     
     return None
 
-def extract_non_hiring_person(keyword, company_id, company_name, max_retries=3, delay=1):
-    api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:{keyword},flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List({company_id})),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:12)&queryId=voyagerSearchDashClusters.95b56a377280ee0fdf38866e2fa1abbb"
+def extract_non_hiring_person(keywords, company_id, company_name, max_retries=3, delay=1):
+    api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:{keywords},flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List({company_id})),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:12)&queryId=voyagerSearchDashClusters.95b56a377280ee0fdf38866e2fa1abbb"
 
     payload = {}
     headers = {
@@ -231,7 +231,7 @@ def scrape_linkedin_and_show_progress(keyword, total_results, employee_threshold
         
         if response.status_code == 200:
             # Fetch the job posting IDs from the response
-            job_posting_list = get_job_posting_ids(response)
+            job_posting_list = get_job_posting_ids(response.json())
             all_ids.extend(job_posting_list)
 
             # Process the batch
@@ -360,6 +360,7 @@ def generate_excel(dataframe, result_name):
     return output
 
 st.title('LinkedIn Job search URL to CSV Generator V2')
+st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL')
 
 # User input for LinkedIn URL
 linkedin_job_url = st.text_input('Enter URL from the LinkedIn Job search:', '')
@@ -395,7 +396,7 @@ if st.button('Generate File'):
         while attempts < max_retries:
             response = requests.request("GET", api_request_url, headers=headers, data=payload)
             if response.status_code == 200:
-                total_number_of_results = get_total_number_of_results(response)
+                total_number_of_results = get_total_number_of_results(response.json())
 
                 if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
                     total_number_of_results = int(max_results_to_check)
@@ -679,60 +680,105 @@ if st.button('Generate File'):
 
         
 linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
-keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
+# keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
 
-total_results = 367
-batches = split_total_into_batches_of_100(total_results)
-print(batches)
+# total_results = 367
+# batches = split_total_into_batches_of_100(total_results)
+# print(batches)
 
-print(f"Starting the scrape! {total_results} to scrape with these api request URLs:")
-start_time = time.time()
-counter = 0
-hiring_team_counter = 0
-temp_data_list = []
-all_ids = []
+# print(f"Starting the scrape! {total_results} to scrape with these api request URLs:")
+# start_time = time.time()
+# counter = 0
+# hiring_team_counter = 0
+# temp_data_list = []
+# all_ids = []
 
-urls = []
-for i, (start, stop) in enumerate(batches):
-    batch_size = stop - start
-    api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={batch_size}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
-    urls.append(api_request_url)
+# urls = []
+# for i, (start, stop) in enumerate(batches):
+#     batch_size = stop - start
+#     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={batch_size}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
+#     urls.append(api_request_url)
 
-print(urls)
+# print(urls)
 
-async def fetch(sem, session, url, headers, payload, max_retries=3, delay=1):
-    async with sem:
-        for attempt in range(max_retries):
-            try:
-                async with session.get(url, headers=headers, json=payload) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        return data
-                    elif response.status == 500:
-                        print(f"Attempt {attempt + 1}: Server Error for URL {url}. Retrying in 1 second...")
-                        await asyncio.sleep(1)
-                    else:
-                        print(f"Attempt {attempt + 1}: Other Error for URL {url}. Retrying in 1 second...")
-                        await asyncio.sleep(1)
-            except aiohttp.ClientError as e:
-                print(f"Request failed: {e}")
-                await asyncio.sleep(1)
-        print(f"Failed to fetch {url} after 3 attempts.")
-        return None  # Or handle failed fetches as needed
+# async def fetch(sem, session, url, headers, payload, max_retries=3, delay=1):
+#     async with sem:
+#         for attempt in range(max_retries):
+#             try:
+#                 async with session.get(url, headers=headers, json=payload) as response:
+#                     if response.status == 200:
+#                         data = await response.json()
+#                         return data
+#                     elif response.status == 500:
+#                         print(f"Attempt {attempt + 1}: Server Error for URL {url}. Retrying in 1 second...")
+#                         await asyncio.sleep(1)
+#                     else:
+#                         print(f"Attempt {attempt + 1}: Other Error for URL {url}. Retrying in 1 second...")
+#                         await asyncio.sleep(1)
+#             except aiohttp.ClientError as e:
+#                 print(f"Request failed: {e}")
+#                 await asyncio.sleep(1)
+#         print(f"Failed to fetch {url} after 3 attempts.")
+#         return None  # Or handle failed fetches as needed
 
-async def fetch_all(urls):
-    sem = asyncio.Semaphore(5)  # Adjust the number as needed. Tried len(batches)
-    async with aiohttp.ClientSession() as session:
-        payload = {}
-        headers = {
-        'csrf-token': 'ajax:5371233139676576627',
-        'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
-        }
-        tasks = [asyncio.create_task(fetch(sem, session, url, headers, payload)) for url in urls]
-        return await asyncio.gather(*tasks)
+# async def fetch_all(urls):
+#     sem = asyncio.Semaphore(5)  # Adjust the number as needed. Tried len(batches)
+#     async with aiohttp.ClientSession() as session:
+#         payload = {}
+#         headers = {
+#         'csrf-token': 'ajax:5371233139676576627',
+#         'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
+#         }
+#         tasks = [asyncio.create_task(fetch(sem, session, url, headers, payload)) for url in urls]
+#         return await asyncio.gather(*tasks)
 
-results = asyncio.run(fetch_all(urls))
+# results = asyncio.run(fetch_all(urls))
 
-for result in results:
-    # process the result which is a dict obtained from the JSON response
-    print(result)
+# job_posting_batches = []
+# for result in results:
+#     job_posting_id = get_job_posting_ids(result)
+#     job_posting_batches.append(job_posting_id)
+
+# print(job_posting_batches)
+
+# for batch in job_posting_batches:
+#     for job_posting in batch:
+#         print(f"Processing job posting #{job_posting}")
+#         full_name, bio, linkedin_url = extract_full_name_bio_and_linkedin_url(job_posting)
+#         job_title, company_name, employee_count, company_url, companyID = extract_company_info(job_posting)
+#         first_name, last_name = split_and_clean_full_name(full_name)
+
+#         print(first_name, last_name, bio, linkedin_url, company_name, employee_count, company_url)
+
+# def extract_full_name_bio_and_linkedin_url(job_posting_id, max_retries=3, delay=1):
+#     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerHiringDashJobHiringSocialHirersCards?jobPosting=urn%3Ali%3Afsd_jobPosting%3A{job_posting_id}&q=jobPosting"
+#     payload = {}
+#     headers = {
+#     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; lang=v=2&lang=en-us; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; liap=true; JSESSIONID="ajax:5371233139676576627"; AnalyticsSyncHistory=AQIdocYcGpv1SwAAAY50EHPdIJOXJnTMkM1IqKRCN-xjtebWOGQgAfFoubhez_GPLJtHRjCZyED3AWxvqFIYaQ; lms_ads=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lms_analytics=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19808%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1711957673%7C6%7CMCAAMB-1711957673%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1711360073s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq1E28xfVI%252fAcBePtgF5Ot6DvS%252fWB%252fLpFSKQIKiRvmofK47glv4UaszkM5BnaNumC19YjDA%252bGl3u278Mr4GVIBmsfuuHdZTKno6a2sJ4rLM%252bAj0eDcO%252boYUweonHKKXHh788Zkj2SGfNAE9x8tKHwo3oYtG%252fxfgSwib%252fnm2aRhCAFhh9Fc2E7uz1O5fgWEMg2cRnKiCKqv7XwXHsq%252f%252bEEn%252bw%253d; sdsc=22%3A1%2C1711355253815%7EJAPP%2C0OEHjuDn%2F8jB%2FwUYa7uP3OdX7FUs%3D; UserMatchHistory=AQKmb6P7HRl1UwAAAY50xgSC9LUMrQMVkRLljSnCrJ90HVCsa441cRTLL9qKlX6i1O796TJSEgL8GfunfiMFakp5E4NQGpZ4V40DJ_8zY1PSKP7Uw6QRian1QRspnn4lsOnJtQfSweE_GkLslrEZAoG4kyeZoZa6iUcGEXUMykKcxaIj84oR5PSXNVgwPgbtr3ZuND98f_e4iATtvE9E8zrkGmhiHh2D1rs631QMeNCVV1AynA_ecMI9_lXkqRsuxnccHsIsFaY9bLSDQGn1YFsIhYqrDHGUOalWaG7bGgI9WsdZ8sOMcZD_0FYxNlHKPSChbgw; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711356119:t=1711383469:v=2:sig=AQHd82x2wmOrEUinpWMUoqSumnm7thv9"; li_mc=MTsyMTsxNzExMzU3MzM2OzI7MDIxAdG1QK8bbcuKeDmJq0ey4DLjFZszCE7JjhRCegIKT/A=; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzExMzU3NDAyOzI7MDIxcChChZMT4OrNPcgxswKzL8h0/enN9c+0qgJAAAy2LmM=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711357847:t=1711383469:v=2:sig=AQEEx0S-hSoqzv3TS2j_b_c1EUsiWH4T"; sdsc=22%3A1%2C1711355253815%7EJAPP%2C0OEHjuDn%2F8jB%2FwUYa7uP3OdX7FUs%3D',
+#     'csrf-token': 'ajax:5371233139676576627'
+#     }
+
+#     attempts = 0
+#     while attempts < max_retries:
+#         response = requests.get(api_request_url, headers=headers, data=payload)
+#         if response.status_code == 200:
+#             full_name = None
+#             bio = None
+#             linkedin_url = None
+
+#             elements = response.json().get('elements', [])
+#             if elements:
+#                 title = elements[0].get('title', {})
+#                 if title:
+#                     full_name = title.get('text')
+#                 subtitle = elements[0].get('subtitle')
+#                 if subtitle:
+#                     bio = subtitle.get('text')
+#                 linkedin_url = elements[0].get('navigationUrl')
+                
+#             return (full_name, bio, linkedin_url)
+#         else:
+#             attempts += 1
+#             time.sleep(delay)  # Wait before the next attempt
+
+#     return None, None, None  # Return None if all attempts fail
