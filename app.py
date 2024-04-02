@@ -4,20 +4,30 @@ import streamlit as st
 from rich import print, print_json
 from io import BytesIO
 
-def get_total_number_of_results(response_json, max_retries=3, delay=1):
-    attempts = 0
-    while attempts < max_retries:
-        paging = response_json.get('paging', {})
-
-        total = None
-        if paging:
-            total = paging.get('total')
+def get_total_number_of_results(keyword, max_retries=3, delay=1):
+    api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count=100&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start=0"
         
-        if isinstance(total, int):
-            return total
-    else:
-        attempts += 1
-        time.sleep(delay)
+    payload = {}
+    headers = {
+    'csrf-token': 'ajax:5371233139676576627',
+    'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
+    }
+
+    for attempt in range(max_retries):
+        try:
+            response = requests.request("GET", api_request_url, headers=headers, data=payload)
+            if response.status_code == 200:
+                total = None
+                paging = response.json().get('paging', {})
+                if paging:
+                    total = paging.get('total')
+                
+                if isinstance(total, int):
+                    return total
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {e}")
+            time.sleep(delay)
+    return None     
 
 # We can only fetch 100 at a time
 def split_total_into_batches_of_100(total):
@@ -27,18 +37,43 @@ def split_total_into_batches_of_100(total):
         batches[-1] = (batches[-1][0], total)
     return batches
 
-def get_job_posting_ids(response_json):
-    metadata = response_json.get('metadata', {})
-    jobCardPrefetchQueries = metadata.get('jobCardPrefetchQueries', [])
-    job_posting_ids_list = []
+async def fetch_job_posting_ids(keyword, batch, session, max_retries=3, delay=1):
+    start, stop = batch
+    batch_size = stop - start
 
-    if jobCardPrefetchQueries:
-        prefetchJobPostingCardUrns = jobCardPrefetchQueries[0].get('prefetchJobPostingCardUrns', {})
-        for job_posting in prefetchJobPostingCardUrns:
-            job_posting_id = re.search(r"\d+", job_posting).group()
-            job_posting_ids_list.append(job_posting_id)
+    api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={batch_size}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
+    headers = {
+    'csrf-token': 'ajax:5371233139676576627',
+    'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
+    }
 
-    return job_posting_ids_list
+    for attempt in range(max_retries):
+        try:
+            async with session.get(api_request_url, headers=headers) as response:
+                if response.status == 200:
+                    data = await response.json()
+
+                    job_posting_ids_list = []
+                    prefetchJobPostingCardUrns = data.get('metadata', {}) \
+                        .get('jobCardPrefetchQueries', [{}])[0] \
+                        .get('prefetchJobPostingCardUrns', {})
+                    for job_posting in prefetchJobPostingCardUrns:
+                        job_posting_id_search = re.search(r"\d+", job_posting)
+                        job_posting_id = job_posting_id_search.group(1) if job_posting_id_search else None
+                        job_posting_ids_list.append(job_posting_id)
+                return job_posting_ids_list
+        except Exception as e:
+            print(f"Request failed: {e}")
+            asyncio.sleep(delay)
+    return None
+
+async def extract_all_job_posting_ids(keyword, batches):
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch_job_posting_ids(session, keyword, batch) for batch in batches]
+        results = await asyncio.gather(*tasks)
+    # Flatten the list of lists
+    job_posting_ids = [id for sublist in results for id in sublist]
+    return job_posting_ids
 
 async def extract_full_name_bio_and_linkedin_url(job_posting_id, session, max_retries=3, delay=1):
     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerHiringDashJobHiringSocialHirersCards?jobPosting=urn%3Ali%3Afsd_jobPosting%3A{job_posting_id}&q=jobPosting"
@@ -51,21 +86,11 @@ async def extract_full_name_bio_and_linkedin_url(job_posting_id, session, max_re
         try:
             async with session.get(api_request_url, headers=headers) as response:
                 if response.status == 200:
-                    full_name = None
-                    bio = None
-                    linkedin_url = None
-
                     data = await response.json()
-                    elements = data.get('elements', [])
-                    if elements:
-                        title = elements[0].get('title', {})
-                        if title:
-                            full_name = title.get('text')
-                        subtitle = elements[0].get('subtitle')
-                        if subtitle:
-                            bio = subtitle.get('text')
-                        linkedin_url = elements[0].get('navigationUrl')
-                        
+                    elements = data.get('elements', [{}])
+                    full_name = elements[0].get('title', {}).get('text', None)
+                    bio = elements[0].get('subtitle', {}).get('text', None)
+                    linkedin_url = elements[0].get('navigationUrl')                        
                     return (full_name, bio, linkedin_url)
         except Exception as e:
             print(f"Request failed: {e}")
@@ -90,25 +115,17 @@ async def extract_company_info(job_posting_id, session, max_retries=3, delay=1):
         try:
             async with session.get(api_request_url, headers=headers) as response:
                 if response.status == 200:
-                    job_title = None
-                    company_name = None
-                    employee_count = None
-                    company_url = None
-                    companyID = None
-
                     data = await response.json()
-                    job_title = data.get('title')
+                    job_title = data.get('title', None)
 
-                    companyDetails = data.get('companyDetails', {})
-                    if companyDetails:
-                        WebJobPostingCompany = companyDetails.get('com.linkedin.voyager.deco.jobs.web.shared.WebJobPostingCompany', {})
-                        if WebJobPostingCompany:
-                            companyResolutionResult = WebJobPostingCompany.get('companyResolutionResult', {})
-                            if companyResolutionResult:
-                                company_name = companyResolutionResult.get('name')
-                                employee_count = companyResolutionResult.get('staffCount')
-                                company_url = companyResolutionResult.get('url')
-                                companyID = re.search(r'(\d+)$', companyResolutionResult.get('entityUrn')).group(1)
+                    companyResolutionResult = data.get('companyDetails', {}) \
+                        .get('com.linkedin.voyager.deco.jobs.web.shared.WebJobPostingCompany', {}) \
+                        .get('companyResolutionResult', {})
+                    company_name = companyResolutionResult.get('name', None)
+                    employee_count = companyResolutionResult.get('staffCount', None)
+                    company_url = companyResolutionResult.get('url', None)
+                    companyID_search = re.search(r'(\d+)$', companyResolutionResult.get('entityUrn', ''))
+                    companyID = companyID_search.group(1) if companyID_search else None
 
                     return (job_title, company_name, employee_count, company_url, companyID)
         except Exception as e:
@@ -127,24 +144,15 @@ async def extract_company_segment(job_posting_id, session, max_retries=3, delay=
         try:
             async with session.get(api_request_url, headers=headers) as response:
                 if response.status == 200:
-                    company_segment = None
-
                     data = await response.json()
-                    data_dict = data.get('data', {})
-                    if data_dict:
-                        jobsDashJobPostingDetailSectionsByCardSectionTypes = data_dict.get('jobsDashJobPostingDetailSectionsByCardSectionTypes', {})
-                        if jobsDashJobPostingDetailSectionsByCardSectionTypes:
-                            elements = jobsDashJobPostingDetailSectionsByCardSectionTypes.get('elements', [])
-                            if elements:
-                                jobPostingDetailSection = elements[0].get('jobPostingDetailSection', [])
-                                if jobPostingDetailSection:
-                                    companyCardV2 = jobPostingDetailSection[0].get('companyCardV2', {})
-                                    if companyCardV2:
-                                        company = companyCardV2.get('company', {})
-                                        if company:
-                                            industryV2Taxonomy = company.get('industryV2Taxonomy', [])
-                                            if industryV2Taxonomy:
-                                                company_segment = industryV2Taxonomy[0].get('name')
+                    company_segment = data.get('data', {}) \
+                        .get('jobsDashJobPostingDetailSectionsByCardSectionTypes', {}) \
+                        .get('elements', [{}])[0] \
+                        .get('jobPostingDetailSection', [{}])[0] \
+                        .get('companyCardV2', {}) \
+                        .get('company', {}) \
+                        .get('industryV2Taxonomy', [{}])[0] \
+                        .get('name', None)
 
                     return company_segment
         except Exception as e:
@@ -165,7 +173,7 @@ async def extract_non_hiring_person(keywords, company_id, company_name, session,
             async with session.get(api_request_url, headers=headers) as response:
                 if response.status == 200:
                     data = await response.json()
-                    included = data.get('included', [])
+                    included = data.get('included', [{}])
         except Exception as e:
             print(f"Request failed: {e}")
             await asyncio.sleep(delay)
@@ -175,42 +183,30 @@ async def extract_non_hiring_person(keywords, company_id, company_name, session,
     
     processed = []
     for person in filtered_people:
-        full_name = person.get('title', {}).get('text')
-        bio = person.get('primarySubtitle', {}).get('text')
-        linkedin_url = person.get('navigationUrl', '')
-        linkedin_url_trimmed = re.search(r'^(.*?)\?', linkedin_url).group(1)
-        processed.append((full_name, bio, linkedin_url_trimmed))
+        full_name = person.get('title', {}).get('text', None)
+        bio = person.get('primarySubtitle', {}).get('text', None)
+        linkedin_url_search = re.search(r'^(.*?)\?', person.get('navigationUrl', ''))
+        linkedin_url = linkedin_url_search.group(1) if linkedin_url_search else None
+        processed.append((full_name, bio, linkedin_url))
 
     return processed
 
-def scrape_linkedin_and_show_progress(keyword, total_results, employee_threshold, less_than_keywords, more_than_keywords, progress_bar, text_placeholder):
+async def main(job_posting_ids, total_results, employee_threshold, less_than_keywords, more_than_keywords):
     result_dataframe = pd.DataFrame(columns=['Hiring Team', 'Förnamn', 'Efternamn', 'Bio', 'LinkedIn URL', 'Jobbtitel som sökes', 'Jobbannons-url', 'Företag', 'Antal anställda', 'Företagssegment', 'Företags-url'])
-    print(f"Keyword: {keyword}")
-    batches = split_total_into_batches_of_100(total_results)
-    print(batches)
-
-    print(f"Starting the scrape! {total_results} to scrape")
-    start_time = time.time()
-    counter = 0
+    
     hiring_team_counter = 0
     temp_data_list = []
     all_ids = []
 
     for i, (start, stop) in enumerate(batches):
         batch_size = stop - start
-        api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={batch_size}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
-
-        payload = {}
-        headers = {
-        'csrf-token': 'ajax:5371233139676576627',
-        'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
-        }
+        
         
         response = requests.request("GET", api_request_url, headers=headers, data=payload)
         
         if response.status_code == 200:
             # Fetch the job posting IDs from the response
-            job_posting_list = get_job_posting_ids(response.json())
+            job_posting_list = extract_all_job_posting_ids(response.json())
             all_ids.extend(job_posting_list)
 
             # Process the batch
@@ -288,14 +284,6 @@ def scrape_linkedin_and_show_progress(keyword, total_results, employee_threshold
                         # else:
                         #     print("Duplicate found. Skipping.") 
 
-                counter += 1
-                    
-                # Update the progress bar and text after each job posting is processed
-                progress = counter / total_results
-                progress = min(max(progress, 0.0), 1.0)  # Clamp the progress value
-                progress_bar.progress(progress)
-                text_placeholder.text(f"Processing {counter} / {total_results}")
-
             # Print the counts after each request
             print(f"After request batch #{i+1}: Total IDs fetched - {len(all_ids)}. Unique IDs - {len(set(all_ids))}")
             time.sleep(1) # Wait 1 second until next batch
@@ -305,10 +293,6 @@ def scrape_linkedin_and_show_progress(keyword, total_results, employee_threshold
 
     end_time = time.time()
     print(f"Everything processed! Took {end_time - start_time} seconds\n")
-
-    # Final update outside the loop to ensure progress is marked complete
-    text_placeholder.text(f"Processing completed! Total processed: {counter} / {total_results}")
-    progress_bar.progress(1.0)  # Ensure the progress bar is full at completion
 
     # Convert the list of dictionaries to a DataFrame and concatenate it with the existing result_dataframe
     new_data_df = pd.DataFrame(temp_data_list)
@@ -338,6 +322,7 @@ def generate_excel(dataframe, result_name):
     output.seek(0)
     return output
 
+### STREAMLIT CODE
 st.title('LinkedIn Job search URL to CSV Generator V2')
 st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL')
 
@@ -356,51 +341,35 @@ file_format = st.radio("Choose the file format for download:", ('csv', 'xlsx'))
 # Button to the result file
 if st.button('Generate File'):
     if linkedin_job_url:
-        # Loading bar
-        progress_bar = st.progress(0)
-        text_placeholder = st.empty()
-        
         keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
-        api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count=100&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start=0"
-        
-        payload = {}
-        headers = {
-        'csrf-token': 'ajax:5371233139676576627',
-        'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
-        }
 
-        max_retries = 3
-        delay = 1
-        attempts = 0
-        while attempts < max_retries:
-            response = requests.request("GET", api_request_url, headers=headers, data=payload)
-            if response.status_code == 200:
-                total_number_of_results = get_total_number_of_results(response.json())
+        start_time = time.time()
+        total_number_of_results = get_total_number_of_results(keyword)
+        if total_number_of_results is None:
+            st.error("Could not fetch total amount of ads. Try again in a bit")
 
-                if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
-                    total_number_of_results = int(max_results_to_check)
+        if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
+            total_number_of_results = int(max_results_to_check)
+        print(f"Attempting to scrape info from {total_number_of_results} job ads!")
 
-                scraped_data_df, (total_fetched, total_unique, total_hiring_team) = scrape_linkedin_and_show_progress(keyword, total_number_of_results, employee_threshold, less_than_keywords, more_than_keywords, progress_bar, text_placeholder)
-                st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
+        batches = split_total_into_batches_of_100(total_number_of_results)
+        print(f"Splitting {total_number_of_results} in batches: {batches}")
 
-                if file_format == 'csv':
-                    csv_file = generate_csv(scraped_data_df, result_name)
-                    with open(csv_file, "rb") as file:
-                        st.download_button(label="Download CSV", data=file, file_name=csv_file, mime='text/csv')
-                    st.success(f'CSV file generated: {csv_file}')
-                    break
-                elif file_format == 'xlsx':
-                    excel_file = generate_excel(scraped_data_df, result_name)
-                    st.download_button(label="Download Excel", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-                    st.success(f'Excel file generated: {result_name}.xlsx')
-                    break
-            else:
-                attempts += 1
-                time.sleep(delay)  # Wait before the next attempt
-        
-        if attempts == 3:
-            st.error('Unable to create a valid request with the given LinkedIn URL.')
+        all_job_posting_ids = extract_all_job_posting_ids(keyword, batches)
+        results = asyncio.run(main(all_job_posting_ids))
 
+        scraped_data_df, (total_fetched, total_unique, total_hiring_team) = scrape_linkedin_and_show_progress(keyword, total_number_of_results, employee_threshold, less_than_keywords, more_than_keywords)
+        st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
+
+        if file_format == 'csv':
+            csv_file = generate_csv(scraped_data_df, result_name)
+            with open(csv_file, "rb") as file:
+                st.download_button(label="Download CSV", data=file, file_name=csv_file, mime='text/csv')
+            st.success(f'CSV file generated: {csv_file}')
+        elif file_format == 'xlsx':
+            excel_file = generate_excel(scraped_data_df, result_name)
+            st.download_button(label="Download Excel", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            st.success(f'Excel file generated: {result_name}.xlsx')
     else:
         st.error('Please enter a valid LinkedIn URL.')
 
@@ -659,66 +628,62 @@ if st.button('Generate File'):
 
         
 linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
-# keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
+keyword = re.search(r'keywords=([^&]+)', linkedin_job_url).group(1)
 
-# total_results = 367
-# batches = split_total_into_batches_of_100(total_results)
-# print(batches)
+total_results = 367
+batches = split_total_into_batches_of_100(total_results)
+print(batches)
 
-# print(f"Starting the scrape! {total_results} to scrape with these api request URLs:")
-# start_time = time.time()
-# counter = 0
-# hiring_team_counter = 0
-# temp_data_list = []
-# all_ids = []
 
-# urls = []
-# for i, (start, stop) in enumerate(batches):
-#     batch_size = stop - start
-#     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={batch_size}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
-#     urls.append(api_request_url)
 
-# print(urls)
+urls = []
+for i, (start, stop) in enumerate(batches):
+    batch_size = stop - start
+    api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={batch_size}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
+    urls.append(api_request_url)
 
-# async def fetch(sem, session, url, headers, payload, max_retries=3, delay=1):
-#     async with sem:
-#         for attempt in range(max_retries):
-#             try:
-#                 async with session.get(url, headers=headers, json=payload) as response:
-#                     if response.status == 200:
-#                         data = await response.json()
-#                         return data
-#                     elif response.status == 500:
-#                         print(f"Attempt {attempt + 1}: Server Error for URL {url}. Retrying in 1 second...")
-#                         await asyncio.sleep(1)
-#                     else:
-#                         print(f"Attempt {attempt + 1}: Other Error for URL {url}. Retrying in 1 second...")
-#                         await asyncio.sleep(1)
-#             except aiohttp.ClientError as e:
-#                 print(f"Request failed: {e}")
-#                 await asyncio.sleep(1)
-#         print(f"Failed to fetch {url} after 3 attempts.")
-#         return None  # Or handle failed fetches as needed
+print(urls)
 
-# async def fetch_all(urls):
-#     sem = asyncio.Semaphore(5)  # Adjust the number as needed. Tried len(batches)
-#     async with aiohttp.ClientSession() as session:
-#         payload = {}
-#         headers = {
-#         'csrf-token': 'ajax:5371233139676576627',
-#         'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
-#         }
-#         tasks = [asyncio.create_task(fetch(sem, session, url, headers, payload)) for url in urls]
-#         return await asyncio.gather(*tasks)
+async def fetch(sem, session, url, headers, payload, max_retries=3, delay=1):
+    async with sem:
+        for attempt in range(max_retries):
+            try:
+                async with session.get(url, headers=headers, json=payload) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data
+                    elif response.status == 500:
+                        print(f"Attempt {attempt + 1}: Server Error for URL {url}. Retrying in 1 second...")
+                        await asyncio.sleep(1)
+                    else:
+                        print(f"Attempt {attempt + 1}: Other Error for URL {url}. Retrying in 1 second...")
+                        await asyncio.sleep(1)
+            except aiohttp.ClientError as e:
+                print(f"Request failed: {e}")
+                await asyncio.sleep(1)
+        print(f"Failed to fetch {url} after 3 attempts.")
+        return None  # Or handle failed fetches as needed
 
-# results = asyncio.run(fetch_all(urls))
+async def fetch_all(urls):
+    sem = asyncio.Semaphore(5)  # Adjust the number as needed. Tried len(batches)
+    async with aiohttp.ClientSession() as session:
+        payload = {}
+        headers = {
+        'csrf-token': 'ajax:5371233139676576627',
+        'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
+        }
+        tasks = [asyncio.create_task(fetch(sem, session, url, headers, payload)) for url in urls]
+        return await asyncio.gather(*tasks)
 
-# job_posting_batches = []
-# for result in results:
-#     job_posting_id = get_job_posting_ids(result)
-#     job_posting_batches.append(job_posting_id)
+results = asyncio.run(fetch_all(urls))
+print(len(results))
 
-# print(job_posting_batches)
+job_posting_ids = []
+for result in results:
+    job_posting_id = get_job_posting_ids(result)
+    job_posting_ids.extend(job_posting_id)
+
+print(job_posting_ids)
 
 # for batch in job_posting_batches:
 #     for job_posting in batch:
@@ -728,6 +693,19 @@ linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=383686134
 #         first_name, last_name = split_and_clean_full_name(full_name)
 
 #         print(first_name, last_name, bio, linkedin_url, company_name, employee_count, company_url)
+
+# def get_job_posting_ids(response_json):
+#     metadata = response_json.get('metadata', {})
+#     jobCardPrefetchQueries = metadata.get('jobCardPrefetchQueries', [])
+#     job_posting_ids_list = []
+
+#     if jobCardPrefetchQueries:
+#         prefetchJobPostingCardUrns = jobCardPrefetchQueries[0].get('prefetchJobPostingCardUrns', {})
+#         for job_posting in prefetchJobPostingCardUrns:
+#             job_posting_id = re.search(r"\d+", job_posting).group()
+#             job_posting_ids_list.append(job_posting_id)
+
+#     return job_posting_ids_list
 
 # def extract_full_name_bio_and_linkedin_url(job_posting_id, max_retries=3, delay=1):
 #     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerHiringDashJobHiringSocialHirersCards?jobPosting=urn%3Ali%3Afsd_jobPosting%3A{job_posting_id}&q=jobPosting"
