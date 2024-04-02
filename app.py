@@ -40,37 +40,36 @@ def get_job_posting_ids(response_json):
 
     return job_posting_ids_list
 
-def extract_full_name_bio_and_linkedin_url(job_posting_id, max_retries=3, delay=1):
+async def extract_full_name_bio_and_linkedin_url(job_posting_id, session, max_retries=3, delay=1):
     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerHiringDashJobHiringSocialHirersCards?jobPosting=urn%3Ali%3Afsd_jobPosting%3A{job_posting_id}&q=jobPosting"
-    payload = {}
     headers = {
     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; lang=v=2&lang=en-us; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; liap=true; JSESSIONID="ajax:5371233139676576627"; AnalyticsSyncHistory=AQIdocYcGpv1SwAAAY50EHPdIJOXJnTMkM1IqKRCN-xjtebWOGQgAfFoubhez_GPLJtHRjCZyED3AWxvqFIYaQ; lms_ads=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lms_analytics=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19808%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1711957673%7C6%7CMCAAMB-1711957673%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1711360073s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq1E28xfVI%252fAcBePtgF5Ot6DvS%252fWB%252fLpFSKQIKiRvmofK47glv4UaszkM5BnaNumC19YjDA%252bGl3u278Mr4GVIBmsfuuHdZTKno6a2sJ4rLM%252bAj0eDcO%252boYUweonHKKXHh788Zkj2SGfNAE9x8tKHwo3oYtG%252fxfgSwib%252fnm2aRhCAFhh9Fc2E7uz1O5fgWEMg2cRnKiCKqv7XwXHsq%252f%252bEEn%252bw%253d; sdsc=22%3A1%2C1711355253815%7EJAPP%2C0OEHjuDn%2F8jB%2FwUYa7uP3OdX7FUs%3D; UserMatchHistory=AQKmb6P7HRl1UwAAAY50xgSC9LUMrQMVkRLljSnCrJ90HVCsa441cRTLL9qKlX6i1O796TJSEgL8GfunfiMFakp5E4NQGpZ4V40DJ_8zY1PSKP7Uw6QRian1QRspnn4lsOnJtQfSweE_GkLslrEZAoG4kyeZoZa6iUcGEXUMykKcxaIj84oR5PSXNVgwPgbtr3ZuND98f_e4iATtvE9E8zrkGmhiHh2D1rs631QMeNCVV1AynA_ecMI9_lXkqRsuxnccHsIsFaY9bLSDQGn1YFsIhYqrDHGUOalWaG7bGgI9WsdZ8sOMcZD_0FYxNlHKPSChbgw; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711356119:t=1711383469:v=2:sig=AQHd82x2wmOrEUinpWMUoqSumnm7thv9"; li_mc=MTsyMTsxNzExMzU3MzM2OzI7MDIxAdG1QK8bbcuKeDmJq0ey4DLjFZszCE7JjhRCegIKT/A=; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzExMzU3NDAyOzI7MDIxcChChZMT4OrNPcgxswKzL8h0/enN9c+0qgJAAAy2LmM=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711357847:t=1711383469:v=2:sig=AQEEx0S-hSoqzv3TS2j_b_c1EUsiWH4T"; sdsc=22%3A1%2C1711355253815%7EJAPP%2C0OEHjuDn%2F8jB%2FwUYa7uP3OdX7FUs%3D',
     'csrf-token': 'ajax:5371233139676576627'
     }
 
-    attempts = 0
-    while attempts < max_retries:
-        response = requests.get(api_request_url, headers=headers, data=payload)
-        if response.status_code == 200:
-            full_name = None
-            bio = None
-            linkedin_url = None
+    for attempt in range(max_retries):
+        try:
+            async with session.get(api_request_url, headers=headers) as response:
+                if response.status == 200:
+                    full_name = None
+                    bio = None
+                    linkedin_url = None
 
-            elements = response.json().get('elements', [])
-            if elements:
-                title = elements[0].get('title', {})
-                if title:
-                    full_name = title.get('text')
-                subtitle = elements[0].get('subtitle')
-                if subtitle:
-                    bio = subtitle.get('text')
-                linkedin_url = elements[0].get('navigationUrl')
-                
-            return (full_name, bio, linkedin_url)
-        else:
-            attempts += 1
-            time.sleep(delay)  # Wait before the next attempt
-
+                    data = await response.json()
+                    elements = data.get('elements', [])
+                    if elements:
+                        title = elements[0].get('title', {})
+                        if title:
+                            full_name = title.get('text')
+                        subtitle = elements[0].get('subtitle')
+                        if subtitle:
+                            bio = subtitle.get('text')
+                        linkedin_url = elements[0].get('navigationUrl')
+                        
+                    return (full_name, bio, linkedin_url)
+        except Exception as e:
+            print(f"Request failed: {e}")
+            await asyncio.sleep(delay)
     return None, None, None  # Return None if all attempts fail
 
 def split_and_clean_full_name(full_name):
@@ -80,47 +79,45 @@ def split_and_clean_full_name(full_name):
     last_name = name_parts[-1] if len(name_parts) > 1 else ''  # Check to avoid index error if name_parts is empty
     return (first_name, last_name)
 
-def extract_company_info(job_posting_id, max_retries=3, delay=1):
+async def extract_company_info(job_posting_id, session, max_retries=3, delay=1):
     api_request_url = f"https://www.linkedin.com/voyager/api/jobs/jobPostings/{job_posting_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65"
-    payload = {}
     headers = {
     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; lang=v=2&lang=en-us; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; liap=true; JSESSIONID="ajax:5371233139676576627"; AnalyticsSyncHistory=AQIdocYcGpv1SwAAAY50EHPdIJOXJnTMkM1IqKRCN-xjtebWOGQgAfFoubhez_GPLJtHRjCZyED3AWxvqFIYaQ; lms_ads=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lms_analytics=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19808%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1711957673%7C6%7CMCAAMB-1711957673%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1711360073s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq1E28xfVI%252fAcBePtgF5Ot6DvS%252fWB%252fLpFSKQIKiRvmofK47glv4UaszkM5BnaNumC19YjDA%252bGl3u278Mr4GVIBmsfuuHdZTKno6a2sJ4rLM%252bAj0eDcO%252boYUweonHKKXHh788Zkj2SGfNAE9x8tKHwo3oYtG%252fxfgSwib%252fnm2aRhCAFhh9Fc2E7uz1O5fgWEMg2cRnKiCKqv7XwXHsq%252f%252bEEn%252bw%253d; UserMatchHistory=AQKmb6P7HRl1UwAAAY50xgSC9LUMrQMVkRLljSnCrJ90HVCsa441cRTLL9qKlX6i1O796TJSEgL8GfunfiMFakp5E4NQGpZ4V40DJ_8zY1PSKP7Uw6QRian1QRspnn4lsOnJtQfSweE_GkLslrEZAoG4kyeZoZa6iUcGEXUMykKcxaIj84oR5PSXNVgwPgbtr3ZuND98f_e4iATtvE9E8zrkGmhiHh2D1rs631QMeNCVV1AynA_ecMI9_lXkqRsuxnccHsIsFaY9bLSDQGn1YFsIhYqrDHGUOalWaG7bGgI9WsdZ8sOMcZD_0FYxNlHKPSChbgw; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711356119:t=1711383469:v=2:sig=AQHd82x2wmOrEUinpWMUoqSumnm7thv9"; sdsc=22%3A1%2C1711358702924%7EJAPP%2C0Il%2B%2BEl2u2z0VpUMUw0YV3QiPP5w%3D; li_mc=MTsyMTsxNzExMzU5MjUyOzI7MDIxZpfdUzMSAl/jvqRDLzR0Bmsl0ivbeBqjWAv0E8v9JRA=; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzExMzU5MzQ0OzI7MDIxyqTlqWTdQJPWNxDh/xbiQT4itWjB7o6jo2B4Ot+BQKY=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711358640:t=1711383469:v=2:sig=AQF9ncvYxxF7o-JLHiRTCjEY4zv9Awqe"; sdsc=22%3A1%2C1711358702924%7EJAPP%2C0Il%2B%2BEl2u2z0VpUMUw0YV3QiPP5w%3D',
     'csrf-token': 'ajax:5371233139676576627'
     }
 
-    attempts = 0
-    while attempts < max_retries:
-        response = requests.request("GET", api_request_url, headers=headers, data=payload)
-        if response.status_code == 200:
-            job_title = None
-            company_name = None
-            employee_count = None
-            company_url = None
-            companyID = None
+    for attempt in range(max_retries):
+        try:
+            async with session.get(api_request_url, headers=headers) as response:
+                if response.status == 200:
+                    job_title = None
+                    company_name = None
+                    employee_count = None
+                    company_url = None
+                    companyID = None
 
-            job_title = response.json().get('title')
+                    data = await response.json()
+                    job_title = data.get('title')
 
-            companyDetails = response.json().get('companyDetails', {})
-            if companyDetails:
-                WebJobPostingCompany = companyDetails.get('com.linkedin.voyager.deco.jobs.web.shared.WebJobPostingCompany', {})
-                if WebJobPostingCompany:
-                    companyResolutionResult = WebJobPostingCompany.get('companyResolutionResult', {})
-                    if companyResolutionResult:
-                        company_name = companyResolutionResult.get('name')
-                        employee_count = companyResolutionResult.get('staffCount')
-                        company_url = companyResolutionResult.get('url')
-                        companyID = re.search(r'(\d+)$', companyResolutionResult.get('entityUrn')).group(1)
+                    companyDetails = data.get('companyDetails', {})
+                    if companyDetails:
+                        WebJobPostingCompany = companyDetails.get('com.linkedin.voyager.deco.jobs.web.shared.WebJobPostingCompany', {})
+                        if WebJobPostingCompany:
+                            companyResolutionResult = WebJobPostingCompany.get('companyResolutionResult', {})
+                            if companyResolutionResult:
+                                company_name = companyResolutionResult.get('name')
+                                employee_count = companyResolutionResult.get('staffCount')
+                                company_url = companyResolutionResult.get('url')
+                                companyID = re.search(r'(\d+)$', companyResolutionResult.get('entityUrn')).group(1)
 
-            return (job_title, company_name, employee_count, company_url, companyID)
-        else:
-            attempts += 1
-            time.sleep(delay)
-    
+                    return (job_title, company_name, employee_count, company_url, companyID)
+        except Exception as e:
+            print(f"Request failed: {e}")
+            await asyncio.sleep(delay)
     return None, None, None, None, None
 
-def extract_company_segment(job_posting_id, max_retries=3, delay=1):
+async def extract_company_segment(job_posting_id, session, max_retries=3, delay=1):
     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{job_posting_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed"
-    payload = {}
     headers = {
     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; lang=v=2&lang=en-us; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; liap=true; JSESSIONID="ajax:5371233139676576627"; AnalyticsSyncHistory=AQIdocYcGpv1SwAAAY50EHPdIJOXJnTMkM1IqKRCN-xjtebWOGQgAfFoubhez_GPLJtHRjCZyED3AWxvqFIYaQ; lms_ads=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lms_analytics=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq92w%252bmvbGBUtNoqdDDGU6K1bm1h82%252bvTwd5d9RxSjyqHKve2TN%252fU1qbwaJVqqH1GEuDg0a0qlsVjDyu6M%252bN5RV%252fIXe2ZN%252flEMI%252fBHHwg3PGu9dktCK7gumT5arLAvFaxC3bmPIHli9%252bB0setOxl6WF4LiYsVd%252bVJpbksyOh%252ffPp89f24dvjSFhWT6wkNTleVQJ4VuwhZF5JiBbSfQxz%252bYWc%253d; sdsc=22%3A1%2C1711462099933%7EJAPP%2C0AgLnCcsJR96aeTsG%2FE69adrVVF4%3D; __cf_bm=XUaVjb_yxnwanRjtokE8Horyb443hwji7VAfjojIzis-1711471681-1.0.1.1-PeTZcP10fT6yKv96rtf5ev8f2Zf77nsmyiuf851hQReBUzs4tIaF.U121htJ7.CGjWCFAz.utMUFimvs1TjfFA; li_mc=MTsyMTsxNzExNDcxNzkyOzI7MDIxIv706UPGtRPQ+6CckOOl29O91ZeGpStrdGS1x1TEp0o=; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19808%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712076989%7C6%7CMCAAMB-1712076989%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1711479389s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; UserMatchHistory=AQKQHbt-oTRe4AAAAY57suv6OCAUqZNXKSczMTZ2g5qZz1s58prBJ5YjvaCqCQZBk7UWzEzIEiBH0yiCLOjOD1wkEG1TDRjHRPGQjG8Y_3DMsgyAX7aZeizllMAwDh-nEVgmPtyLnB-hpC2GXKgivEQrzz-7_OfZ7yVOMW0t-wO3vpjJAjtaOcTtL2tsmqrC9OEtuI_jy1RFB91h0_Cu3ioKe8xb6Jhegs0qXP6ynuQY6BDHbWJeQrzvKMUdPbtJ9QADbzHPr3NEk3Z4LE_cpcIsC2HDdCcwWhUDJ78MmstZIdNfTZ0nVHVPUGVP-Hvro_UgG38; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4158:u=247:x=1:i=1711472308:t=1711540940:v=2:sig=AQFtWBAyB43Zq72h20RayXgdxThybm5u"; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzExNTI3ODYxOzI7MDIxqzhri+244uJRczErlO5om44jUAjTBvo/ifD7lHsMg9E=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4159:u=247:x=1:i=1711476075:t=1711562169:v=2:sig=AQEJacPpzSoZYeIhM-ukSSOrBExvo6Hs"',
     'csrf-token': 'ajax:5371233139676576627'
@@ -128,40 +125,35 @@ def extract_company_segment(job_posting_id, max_retries=3, delay=1):
 
     for attempt in range(max_retries):
         try:
-            response = requests.request("GET", api_request_url, headers=headers, data=payload)
-            if response.status_code == 200:
-                company_segment = None
+            async with session.get(api_request_url, headers=headers) as response:
+                if response.status == 200:
+                    company_segment = None
 
-                data = response.json().get('data', {})
-                if data:
-                    jobsDashJobPostingDetailSectionsByCardSectionTypes = data.get('jobsDashJobPostingDetailSectionsByCardSectionTypes', {})
-                    if jobsDashJobPostingDetailSectionsByCardSectionTypes:
-                        elements = jobsDashJobPostingDetailSectionsByCardSectionTypes.get('elements', [])
-                        if elements:
-                            jobPostingDetailSection = elements[0].get('jobPostingDetailSection', [])
-                            if jobPostingDetailSection:
-                                companyCardV2 = jobPostingDetailSection[0].get('companyCardV2', {})
-                                if companyCardV2:
-                                    company = companyCardV2.get('company', {})
-                                    if company:
-                                        industryV2Taxonomy = company.get('industryV2Taxonomy', [])
-                                        if industryV2Taxonomy:
-                                            company_segment = industryV2Taxonomy[0].get('name')
+                    data = await response.json()
+                    data_dict = data.get('data', {})
+                    if data_dict:
+                        jobsDashJobPostingDetailSectionsByCardSectionTypes = data_dict.get('jobsDashJobPostingDetailSectionsByCardSectionTypes', {})
+                        if jobsDashJobPostingDetailSectionsByCardSectionTypes:
+                            elements = jobsDashJobPostingDetailSectionsByCardSectionTypes.get('elements', [])
+                            if elements:
+                                jobPostingDetailSection = elements[0].get('jobPostingDetailSection', [])
+                                if jobPostingDetailSection:
+                                    companyCardV2 = jobPostingDetailSection[0].get('companyCardV2', {})
+                                    if companyCardV2:
+                                        company = companyCardV2.get('company', {})
+                                        if company:
+                                            industryV2Taxonomy = company.get('industryV2Taxonomy', [])
+                                            if industryV2Taxonomy:
+                                                company_segment = industryV2Taxonomy[0].get('name')
 
-                return company_segment
-            else:
-                print(f"Received status code {response.status_code}")
-        except requests.exceptions.RequestException as e:
+                    return company_segment
+        except Exception as e:
             print(f"Request failed: {e}")
-
-        time.sleep(delay)
-    
+            await asyncio.sleep(delay)    
     return None
 
-def extract_non_hiring_person(keywords, company_id, company_name, max_retries=3, delay=1):
+async def extract_non_hiring_person(keywords, company_id, company_name, session, max_retries=3, delay=1):
     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:{keywords},flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List({company_id})),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:12)&queryId=voyagerSearchDashClusters.95b56a377280ee0fdf38866e2fa1abbb"
-
-    payload = {}
     headers = {
     'accept': 'application/vnd.linkedin.normalized+json+2.1',
     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; liap=true; JSESSIONID="ajax:5371233139676576627"; AnalyticsSyncHistory=AQIdocYcGpv1SwAAAY50EHPdIJOXJnTMkM1IqKRCN-xjtebWOGQgAfFoubhez_GPLJtHRjCZyED3AWxvqFIYaQ; lms_ads=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lms_analytics=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lang=v=2&lang=en-us; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19810%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712132028%7C6%7CMCAAMB-1712132028%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1711534428s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq%252fDg1P2Me884P8DqJE%252bu%252bhdOIkdyU2Cd9w7yHB6iYtKb6U8xaAwTvjnq2ssHPK9ys0CAhVje7nR0DTLdIy9PE45kvhPJ3sibyhZTSZKysPbaKCqnS2Sh571VGFuY8f7wMKVMw9Fr9GO9AFcBiIYaQR39wL6dxjxiNCgNyh2USDm5N%252boMdbTeHx8KVUtII%252b%252fAwOj5zdC0JUS4BawY8JnOEP8%253d; li_mc=MTsyMTsxNzExNTM0MjE5OzI7MDIx1u11r1q1nZqdf9VZ9i4emq/otsc8a1aE1Ey3hNklH0w=; UserMatchHistory=AQKXWw-1YRtD4gAAAY5_a8Auf7UfWtLREei053hA5noLL671okszgbKq2Zb2dZBffrFWdvFTgBDY0Lu9DPzgLkRCsvcXBATGNVCUaCU5ECIr9seK7Mga8vwwisdtb5bCJMpPjoCjBEobBEjSJqs3zHYzQfmOknbzSQu5oQTrY7i5TV5Hhec30h6jewTNa74LM0zJXCDTufhARjnsXh_KrXpvQbpffv1Aqg8XuHnNV48lrNxSYaDqhFnLoEiADcTd_z5PAm9zAT6n0yfNnljBhoKuvizFtRi82bigcnx30pBXodVkoqZK1B1qiskaux2xtpZbx-o; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4160:u=247:x=1:i=1711534752:t=1711617371:v=2:sig=AQFNrIKZoqRhrNuX34UJHAh5kfxs_Skg"; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzExNTM2MTgyOzI7MDIxZbVJ/rJpkAJJ7wrIljpYP8RVlT8ZZ7duyC5fy/bxuWw=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4160:u=247:x=1:i=1711534708:t=1711617371:v=2:sig=AQGsSO7VGSkbkYwJDZahwdPhzv2WlGE8"',
@@ -170,36 +162,23 @@ def extract_non_hiring_person(keywords, company_id, company_name, max_retries=3,
 
     for attempt in range(max_retries):
         try:
-            response = requests.request("GET", api_request_url, headers=headers, data=payload)
-            if response.status_code == 200:
-                included = response.json().get('included', [])
-            else:
-                print(f"Received status code {response.status_code}")
-        except requests.exceptions.RequestException as e:
+            async with session.get(api_request_url, headers=headers) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    included = data.get('included', [])
+        except Exception as e:
             print(f"Request failed: {e}")
+            await asyncio.sleep(delay)
 
-        time.sleep(delay)
-
+    # Filter out any items in 'included' that don't represent a person based on a minimum number of keys
+    filtered_people = [person for person in included if len(person) >= 5]
+    
     processed = []
-
-    for person in included:
-        if len(person) < 5:
-            continue
-        full_name = None
-        bio = None
-        linkedin_url = None
-        title = person.get('title', {})
-        if title:
-            full_name = title.get('text')
-        primarySubtitle = person.get('primarySubtitle', {})
-        if primarySubtitle:
-            bio = primarySubtitle.get('text')
-        try:
-            linkedin_url = person.get('navigationUrl', {})
-            linkedin_url_trimmed = re.search(r'^(.*?)\?', linkedin_url).group(1)
-        except:
-            print("Failed to fetch LinkedIn url")
-            pass
+    for person in filtered_people:
+        full_name = person.get('title', {}).get('text')
+        bio = person.get('primarySubtitle', {}).get('text')
+        linkedin_url = person.get('navigationUrl', '')
+        linkedin_url_trimmed = re.search(r'^(.*?)\?', linkedin_url).group(1)
         processed.append((full_name, bio, linkedin_url_trimmed))
 
     return processed
@@ -782,3 +761,125 @@ linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=383686134
 #             time.sleep(delay)  # Wait before the next attempt
 
 #     return None, None, None  # Return None if all attempts fail
+
+# def extract_company_info(job_posting_id, max_retries=3, delay=1):
+#     api_request_url = f"https://www.linkedin.com/voyager/api/jobs/jobPostings/{job_posting_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65"
+#     payload = {}
+#     headers = {
+#     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; lang=v=2&lang=en-us; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; liap=true; JSESSIONID="ajax:5371233139676576627"; AnalyticsSyncHistory=AQIdocYcGpv1SwAAAY50EHPdIJOXJnTMkM1IqKRCN-xjtebWOGQgAfFoubhez_GPLJtHRjCZyED3AWxvqFIYaQ; lms_ads=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lms_analytics=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19808%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1711957673%7C6%7CMCAAMB-1711957673%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1711360073s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq1E28xfVI%252fAcBePtgF5Ot6DvS%252fWB%252fLpFSKQIKiRvmofK47glv4UaszkM5BnaNumC19YjDA%252bGl3u278Mr4GVIBmsfuuHdZTKno6a2sJ4rLM%252bAj0eDcO%252boYUweonHKKXHh788Zkj2SGfNAE9x8tKHwo3oYtG%252fxfgSwib%252fnm2aRhCAFhh9Fc2E7uz1O5fgWEMg2cRnKiCKqv7XwXHsq%252f%252bEEn%252bw%253d; UserMatchHistory=AQKmb6P7HRl1UwAAAY50xgSC9LUMrQMVkRLljSnCrJ90HVCsa441cRTLL9qKlX6i1O796TJSEgL8GfunfiMFakp5E4NQGpZ4V40DJ_8zY1PSKP7Uw6QRian1QRspnn4lsOnJtQfSweE_GkLslrEZAoG4kyeZoZa6iUcGEXUMykKcxaIj84oR5PSXNVgwPgbtr3ZuND98f_e4iATtvE9E8zrkGmhiHh2D1rs631QMeNCVV1AynA_ecMI9_lXkqRsuxnccHsIsFaY9bLSDQGn1YFsIhYqrDHGUOalWaG7bGgI9WsdZ8sOMcZD_0FYxNlHKPSChbgw; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711356119:t=1711383469:v=2:sig=AQHd82x2wmOrEUinpWMUoqSumnm7thv9"; sdsc=22%3A1%2C1711358702924%7EJAPP%2C0Il%2B%2BEl2u2z0VpUMUw0YV3QiPP5w%3D; li_mc=MTsyMTsxNzExMzU5MjUyOzI7MDIxZpfdUzMSAl/jvqRDLzR0Bmsl0ivbeBqjWAv0E8v9JRA=; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzExMzU5MzQ0OzI7MDIxyqTlqWTdQJPWNxDh/xbiQT4itWjB7o6jo2B4Ot+BQKY=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711358640:t=1711383469:v=2:sig=AQF9ncvYxxF7o-JLHiRTCjEY4zv9Awqe"; sdsc=22%3A1%2C1711358702924%7EJAPP%2C0Il%2B%2BEl2u2z0VpUMUw0YV3QiPP5w%3D',
+#     'csrf-token': 'ajax:5371233139676576627'
+#     }
+
+#     attempts = 0
+#     while attempts < max_retries:
+#         response = requests.request("GET", api_request_url, headers=headers, data=payload)
+#         if response.status_code == 200:
+#             job_title = None
+#             company_name = None
+#             employee_count = None
+#             company_url = None
+#             companyID = None
+
+#             job_title = response.json().get('title')
+
+#             companyDetails = response.json().get('companyDetails', {})
+#             if companyDetails:
+#                 WebJobPostingCompany = companyDetails.get('com.linkedin.voyager.deco.jobs.web.shared.WebJobPostingCompany', {})
+#                 if WebJobPostingCompany:
+#                     companyResolutionResult = WebJobPostingCompany.get('companyResolutionResult', {})
+#                     if companyResolutionResult:
+#                         company_name = companyResolutionResult.get('name')
+#                         employee_count = companyResolutionResult.get('staffCount')
+#                         company_url = companyResolutionResult.get('url')
+#                         companyID = re.search(r'(\d+)$', companyResolutionResult.get('entityUrn')).group(1)
+
+#             return (job_title, company_name, employee_count, company_url, companyID)
+#         else:
+#             attempts += 1
+#             time.sleep(delay)
+    
+#     return None, None, None, None, None
+
+# def extract_company_info(job_posting_id, max_retries=3, delay=1):
+#     api_request_url = f"https://www.linkedin.com/voyager/api/jobs/jobPostings/{job_posting_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65"
+#     payload = {}
+#     headers = {
+#     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; lang=v=2&lang=en-us; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; liap=true; JSESSIONID="ajax:5371233139676576627"; AnalyticsSyncHistory=AQIdocYcGpv1SwAAAY50EHPdIJOXJnTMkM1IqKRCN-xjtebWOGQgAfFoubhez_GPLJtHRjCZyED3AWxvqFIYaQ; lms_ads=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lms_analytics=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19808%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1711957673%7C6%7CMCAAMB-1711957673%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1711360073s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq1E28xfVI%252fAcBePtgF5Ot6DvS%252fWB%252fLpFSKQIKiRvmofK47glv4UaszkM5BnaNumC19YjDA%252bGl3u278Mr4GVIBmsfuuHdZTKno6a2sJ4rLM%252bAj0eDcO%252boYUweonHKKXHh788Zkj2SGfNAE9x8tKHwo3oYtG%252fxfgSwib%252fnm2aRhCAFhh9Fc2E7uz1O5fgWEMg2cRnKiCKqv7XwXHsq%252f%252bEEn%252bw%253d; UserMatchHistory=AQKmb6P7HRl1UwAAAY50xgSC9LUMrQMVkRLljSnCrJ90HVCsa441cRTLL9qKlX6i1O796TJSEgL8GfunfiMFakp5E4NQGpZ4V40DJ_8zY1PSKP7Uw6QRian1QRspnn4lsOnJtQfSweE_GkLslrEZAoG4kyeZoZa6iUcGEXUMykKcxaIj84oR5PSXNVgwPgbtr3ZuND98f_e4iATtvE9E8zrkGmhiHh2D1rs631QMeNCVV1AynA_ecMI9_lXkqRsuxnccHsIsFaY9bLSDQGn1YFsIhYqrDHGUOalWaG7bGgI9WsdZ8sOMcZD_0FYxNlHKPSChbgw; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711356119:t=1711383469:v=2:sig=AQHd82x2wmOrEUinpWMUoqSumnm7thv9"; sdsc=22%3A1%2C1711358702924%7EJAPP%2C0Il%2B%2BEl2u2z0VpUMUw0YV3QiPP5w%3D; li_mc=MTsyMTsxNzExMzU5MjUyOzI7MDIxZpfdUzMSAl/jvqRDLzR0Bmsl0ivbeBqjWAv0E8v9JRA=; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzExMzU5MzQ0OzI7MDIxyqTlqWTdQJPWNxDh/xbiQT4itWjB7o6jo2B4Ot+BQKY=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711358640:t=1711383469:v=2:sig=AQF9ncvYxxF7o-JLHiRTCjEY4zv9Awqe"; sdsc=22%3A1%2C1711358702924%7EJAPP%2C0Il%2B%2BEl2u2z0VpUMUw0YV3QiPP5w%3D',
+#     'csrf-token': 'ajax:5371233139676576627'
+#     }
+
+#     attempts = 0
+#     while attempts < max_retries:
+#         response = requests.request("GET", api_request_url, headers=headers, data=payload)
+#         if response.status_code == 200:
+#             job_title = None
+#             company_name = None
+#             employee_count = None
+#             company_url = None
+#             companyID = None
+
+#             job_title = response.json().get('title')
+
+#             companyDetails = response.json().get('companyDetails', {})
+#             if companyDetails:
+#                 WebJobPostingCompany = companyDetails.get('com.linkedin.voyager.deco.jobs.web.shared.WebJobPostingCompany', {})
+#                 if WebJobPostingCompany:
+#                     companyResolutionResult = WebJobPostingCompany.get('companyResolutionResult', {})
+#                     if companyResolutionResult:
+#                         company_name = companyResolutionResult.get('name')
+#                         employee_count = companyResolutionResult.get('staffCount')
+#                         company_url = companyResolutionResult.get('url')
+#                         companyID = re.search(r'(\d+)$', companyResolutionResult.get('entityUrn')).group(1)
+
+#             return (job_title, company_name, employee_count, company_url, companyID)
+#         else:
+#             attempts += 1
+#             time.sleep(delay)
+    
+#     return None, None, None, None, None
+
+# def extract_non_hiring_person(keywords, company_id, company_name, max_retries=3, delay=1):
+#     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:{keywords},flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List({company_id})),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:12)&queryId=voyagerSearchDashClusters.95b56a377280ee0fdf38866e2fa1abbb"
+
+#     payload = {}
+#     headers = {
+#     'accept': 'application/vnd.linkedin.normalized+json+2.1',
+#     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; liap=true; JSESSIONID="ajax:5371233139676576627"; AnalyticsSyncHistory=AQIdocYcGpv1SwAAAY50EHPdIJOXJnTMkM1IqKRCN-xjtebWOGQgAfFoubhez_GPLJtHRjCZyED3AWxvqFIYaQ; lms_ads=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lms_analytics=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lang=v=2&lang=en-us; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19810%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712132028%7C6%7CMCAAMB-1712132028%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1711534428s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq%252fDg1P2Me884P8DqJE%252bu%252bhdOIkdyU2Cd9w7yHB6iYtKb6U8xaAwTvjnq2ssHPK9ys0CAhVje7nR0DTLdIy9PE45kvhPJ3sibyhZTSZKysPbaKCqnS2Sh571VGFuY8f7wMKVMw9Fr9GO9AFcBiIYaQR39wL6dxjxiNCgNyh2USDm5N%252boMdbTeHx8KVUtII%252b%252fAwOj5zdC0JUS4BawY8JnOEP8%253d; li_mc=MTsyMTsxNzExNTM0MjE5OzI7MDIx1u11r1q1nZqdf9VZ9i4emq/otsc8a1aE1Ey3hNklH0w=; UserMatchHistory=AQKXWw-1YRtD4gAAAY5_a8Auf7UfWtLREei053hA5noLL671okszgbKq2Zb2dZBffrFWdvFTgBDY0Lu9DPzgLkRCsvcXBATGNVCUaCU5ECIr9seK7Mga8vwwisdtb5bCJMpPjoCjBEobBEjSJqs3zHYzQfmOknbzSQu5oQTrY7i5TV5Hhec30h6jewTNa74LM0zJXCDTufhARjnsXh_KrXpvQbpffv1Aqg8XuHnNV48lrNxSYaDqhFnLoEiADcTd_z5PAm9zAT6n0yfNnljBhoKuvizFtRi82bigcnx30pBXodVkoqZK1B1qiskaux2xtpZbx-o; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4160:u=247:x=1:i=1711534752:t=1711617371:v=2:sig=AQFNrIKZoqRhrNuX34UJHAh5kfxs_Skg"; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzExNTM2MTgyOzI7MDIxZbVJ/rJpkAJJ7wrIljpYP8RVlT8ZZ7duyC5fy/bxuWw=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4160:u=247:x=1:i=1711534708:t=1711617371:v=2:sig=AQGsSO7VGSkbkYwJDZahwdPhzv2WlGE8"',
+#     'csrf-token': 'ajax:5371233139676576627'
+#     }
+
+#     for attempt in range(max_retries):
+#         try:
+#             response = requests.request("GET", api_request_url, headers=headers, data=payload)
+#             if response.status_code == 200:
+#                 included = response.json().get('included', [])
+#             else:
+#                 print(f"Received status code {response.status_code}")
+#         except requests.exceptions.RequestException as e:
+#             print(f"Request failed: {e}")
+
+#         time.sleep(delay)
+
+#     processed = []
+
+#     for person in included:
+#         if len(person) < 5:
+#             continue
+#         full_name = None
+#         bio = None
+#         linkedin_url = None
+#         title = person.get('title', {})
+#         if title:
+#             full_name = title.get('text')
+#         primarySubtitle = person.get('primarySubtitle', {})
+#         if primarySubtitle:
+#             bio = primarySubtitle.get('text')
+#         try:
+#             linkedin_url = person.get('navigationUrl', {})
+#             linkedin_url_trimmed = re.search(r'^(.*?)\?', linkedin_url).group(1)
+#         except:
+#             print("Failed to fetch LinkedIn url")
+#             pass
+#         processed.append((full_name, bio, linkedin_url_trimmed))
+
+#     return processed
