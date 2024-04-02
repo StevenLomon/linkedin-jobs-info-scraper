@@ -883,3 +883,139 @@ linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=383686134
 #         processed.append((full_name, bio, linkedin_url_trimmed))
 
 #     return processed
+
+# def scrape_linkedin_and_show_progress(keyword, total_results, employee_threshold, less_than_keywords, more_than_keywords, progress_bar, text_placeholder):
+#     result_dataframe = pd.DataFrame(columns=['Hiring Team', 'Förnamn', 'Efternamn', 'Bio', 'LinkedIn URL', 'Jobbtitel som sökes', 'Jobbannons-url', 'Företag', 'Antal anställda', 'Företagssegment', 'Företags-url'])
+#     print(f"Keyword: {keyword}")
+#     batches = split_total_into_batches_of_100(total_results)
+#     print(batches)
+
+#     print(f"Starting the scrape! {total_results} to scrape")
+#     start_time = time.time()
+#     counter = 0
+#     hiring_team_counter = 0
+#     temp_data_list = []
+#     all_ids = []
+
+#     for i, (start, stop) in enumerate(batches):
+#         batch_size = stop - start
+#         api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={batch_size}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
+
+#         payload = {}
+#         headers = {
+#         'csrf-token': 'ajax:5371233139676576627',
+#         'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
+#         }
+        
+#         response = requests.request("GET", api_request_url, headers=headers, data=payload)
+        
+#         if response.status_code == 200:
+#             # Fetch the job posting IDs from the response
+#             job_posting_list = get_job_posting_ids(response.json())
+#             all_ids.extend(job_posting_list)
+
+#             # Process the batch
+#             for job_posting in job_posting_list:
+#                 print(f"Processing job posting #{job_posting}")
+#                 full_name, bio, linkedin_url = extract_full_name_bio_and_linkedin_url(job_posting)
+#                 job_title, company_name, employee_count, company_url, companyID = extract_company_info(job_posting)
+#                 company_segment = None
+#                 if company_name is not None:
+#                     company_segment = extract_company_segment(job_posting)
+#                 else:
+#                     company_segment = None
+            
+#                 if linkedin_url and full_name:
+#                     first_name, last_name = split_and_clean_full_name(full_name)
+
+#                     print(f"#{counter} : LinkedIn URL: {linkedin_url}, Name: {full_name}, Job title: {job_title}, Company: {company_name}")
+
+#                     new_row = {'Hiring Team': 'Ja', 'Förnamn': first_name, 'Efternamn': last_name, 'Bio': bio, 'LinkedIn URL': linkedin_url,
+#                             'Jobbtitel som sökes': job_title, 'Jobbannons-url': f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting}&geoId=105117694&keywords=sem%20seo&location=Sweden", 
+#                             'Företag': company_name, 'Antal anställda': employee_count, 'Företagssegment': company_segment, 'Företags-url': company_url}
+
+#                     # Check if the new_row is a duplicate
+#                     if new_row not in temp_data_list:
+#                         temp_data_list.append(new_row)
+#                         hiring_team_counter += 1
+#                     else:
+#                         print("Duplicate found. Skipping.")  
+#                 else:
+#                     print(f"#{counter} : Could not fetch name and/or url from Hiring team card. Trying other way...")
+
+#                     # Look through the company page
+#                     company_keywords = None
+#                     try:
+#                         if employee_count <= employee_threshold:
+#                             company_keywords = less_than_keywords
+#                         else:
+#                             company_keywords = more_than_keywords
+
+#                         print(f"Keywords: {company_keywords}")
+#                         print(f"Company name: {company_name}")
+#                         print(f"Company ID: {companyID}")
+
+#                         url_formatted_keywords = company_keywords.replace(', ', '%20OR%20').strip()
+#                         print(url_formatted_keywords)
+
+#                         company_people = extract_non_hiring_person(url_formatted_keywords, companyID, company_name)
+
+#                         print(f"Company people: {company_people}")
+
+#                         for person in company_people:
+#                             full_name, bio, linkedin_url = person
+#                             first_name, last_name = split_and_clean_full_name(full_name)
+
+#                             print(f"Trying to add: {first_name}, {last_name}, {linkedin_url}")
+
+#                             new_row = {'Hiring Team': 'Nej', 'Förnamn': first_name, 'Efternamn': last_name, 'Bio': bio, 'LinkedIn URL': linkedin_url,
+#                                     'Jobbtitel som sökes': job_title, 'Jobbannons-url': f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting}&geoId=105117694&keywords=sem%20seo&location=Sweden", 
+#                                     'Företag': company_name, 'Antal anställda': employee_count, 'Företagssegment': company_segment, 'Företags-url': company_url}
+
+#                             # Check if the new_row is a duplicate
+#                             if new_row not in temp_data_list:
+#                                 temp_data_list.append(new_row)
+#                             else:
+#                                 print("Duplicate found. Skipping.")  
+#                     except requests.exceptions.RequestException as e:
+#                         print(f"Error: {e}")
+#                         # new_row = {'Hiring Team': 'Nej', 'Förnamn': None, 'Efternamn': None, 'Bio': None, 'LinkedIn URL': None,
+#                         #             'Jobbtitel som sökes': job_title, 'Jobbannons-url': f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting}&geoId=105117694&keywords=sem%20seo&location=Sweden", 
+#                         #             'Företag': company_name, 'Antal anställda': None, 'Företagssegment': company_segment, 'Företags-url': company_url}
+
+#                         # # Check if the new_row is a duplicate
+#                         # if new_row not in temp_data_list:
+#                         #     temp_data_list.append(new_row)
+#                         # else:
+#                         #     print("Duplicate found. Skipping.") 
+
+#                 counter += 1
+                    
+#                 # Update the progress bar and text after each job posting is processed
+#                 progress = counter / total_results
+#                 progress = min(max(progress, 0.0), 1.0)  # Clamp the progress value
+#                 progress_bar.progress(progress)
+#                 text_placeholder.text(f"Processing {counter} / {total_results}")
+
+#             # Print the counts after each request
+#             print(f"After request batch #{i+1}: Total IDs fetched - {len(all_ids)}. Unique IDs - {len(set(all_ids))}")
+#             time.sleep(1) # Wait 1 second until next batch
+#         else:
+#             print(f"Request for batch {start}-{stop} failed with status code: {response.status_code}")
+#             # Handle the failure accordingly, e.g., retry or log error
+
+#     end_time = time.time()
+#     print(f"Everything processed! Took {end_time - start_time} seconds\n")
+
+#     # Final update outside the loop to ensure progress is marked complete
+#     text_placeholder.text(f"Processing completed! Total processed: {counter} / {total_results}")
+#     progress_bar.progress(1.0)  # Ensure the progress bar is full at completion
+
+#     # Convert the list of dictionaries to a DataFrame and concatenate it with the existing result_dataframe
+#     new_data_df = pd.DataFrame(temp_data_list)
+#     result_dataframe = pd.concat([result_dataframe, new_data_df], ignore_index=True)
+
+#     print(f"Done. Results:\nTotal found in the request: {total_results}\nTotal fetched succesfully: {len(all_ids)}\nTotal unique ids: {len(set(all_ids))}\nTotal hiring team available: {hiring_team_counter}")
+
+#     # Return the resulting dataframe as well as a set with everything we print out after the scrape. Bad practice, I know :))
+#     return [result_dataframe, (len(all_ids), len(set(all_ids)), hiring_team_counter)]
