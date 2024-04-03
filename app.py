@@ -3,6 +3,8 @@ import pandas  as pd
 import streamlit as st
 from rich import print, print_json
 from io import BytesIO
+from urllib.parse import quote
+from bs4 import BeautifulSoup
 
 def get_total_number_of_results(keyword, max_retries=3, delay=1):
     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count=100&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start=0"
@@ -106,6 +108,25 @@ def split_and_clean_full_name(full_name):
     last_name = name_parts[-1] if len(name_parts) > 1 else ''  # Check to avoid index error if name_parts is empty
     return (first_name, last_name)
 
+async def fetch_and_parse_company_segment(company_url, session):
+    try:
+        # Fetch the company page content asynchronously. Add headers if necessary
+        async with session.get(company_url) as company_response:
+            if company_response.status == 200:
+                company_page_content = await company_response.text()
+
+                # Parse the HTML content in a separate threat to avoid blocking
+                def parse_html(content):
+                    soup = BeautifulSoup(content, 'html.parser')
+                    segment_div = soup.find('div', attrs={'class':'org-top-card-summary-info-list__info-item'})
+                    return segment_div.text if segment_div else None
+
+                company_segment = await asyncio.to_thread(parse_html, company_page_content)
+                return company_segment
+    except Exception as e:
+        print(f"Error fetching pr parsing company page: {e}")
+    return None
+
 async def extract_company_info(job_posting_id, sem, session, max_retries=3, delay=1):
     api_request_url = f"https://www.linkedin.com/voyager/api/jobs/jobPostings/{job_posting_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65"
     headers = {
@@ -126,52 +147,52 @@ async def extract_company_info(job_posting_id, sem, session, max_retries=3, dela
                             .get('companyResolutionResult', {})
                         company_name = companyResolutionResult.get('name', None)
                         employee_count = companyResolutionResult.get('staffCount', None)
-                        company_url = companyResolutionResult.get('url', None)
                         companyID_search = re.search(r'(\d+)$', companyResolutionResult.get('entityUrn', ''))
                         companyID = companyID_search.group(1) if companyID_search else None
+                        company_url = companyResolutionResult.get('url', None)
 
-                        return (job_title, company_name, employee_count, company_url, companyID)
+                        company_segment = None
+                        if company_url:
+                            company_segment = await fetch_and_parse_company_segment(company_url, session)
+
+                        return (job_posting_id, job_title, company_name, employee_count, company_url, company_segment, companyID)
             except Exception as e:
                 print(f"Request failed: {e}")
                 await asyncio.sleep(delay)
-    return None, None, None, None, None
+    return None, None, None, None, None, None, None
 
-async def extract_company_segment(job_posting_id, sem, session, max_retries=3, delay=1):
-    api_request_url = f"https://www.linkedin.com/voyager/api/graphql?queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed&variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{job_posting_id},includeSecondaryActionsV2:true)"
+# async def extract_company_segment(job_posting_id, sem, session, max_retries=1, delay=1):
+#     encoded_job_posting_id = quote(job_posting_id)
+#     # api_request_url = f"https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed&variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{encoded_job_posting_id},includeSecondaryActionsV2:true)"
+#     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{encoded_job_posting_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed"
 
-    # payload = {}
-    headers = {
-    'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; lang=v=2&lang=en-us; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; liap=true; JSESSIONID="ajax:5371233139676576627"; AnalyticsSyncHistory=AQIdocYcGpv1SwAAAY50EHPdIJOXJnTMkM1IqKRCN-xjtebWOGQgAfFoubhez_GPLJtHRjCZyED3AWxvqFIYaQ; lms_ads=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lms_analytics=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq92w%252bmvbGBUtNoqdDDGU6K1bm1h82%252bvTwd5d9RxSjyqHKve2TN%252fU1qbwaJVqqH1GEuDg0a0qlsVjDyu6M%252bN5RV%252fIXe2ZN%252flEMI%252fBHHwg3PGu9dktCK7gumT5arLAvFaxC3bmPIHli9%252bB0setOxl6WF4LiYsVd%252bVJpbksyOh%252ffPp89f24dvjSFhWT6wkNTleVQJ4VuwhZF5JiBbSfQxz%252bYWc%253d; sdsc=22%3A1%2C1711462099933%7EJAPP%2C0AgLnCcsJR96aeTsG%2FE69adrVVF4%3D; __cf_bm=XUaVjb_yxnwanRjtokE8Horyb443hwji7VAfjojIzis-1711471681-1.0.1.1-PeTZcP10fT6yKv96rtf5ev8f2Zf77nsmyiuf851hQReBUzs4tIaF.U121htJ7.CGjWCFAz.utMUFimvs1TjfFA; li_mc=MTsyMTsxNzExNDcxNzkyOzI7MDIxIv706UPGtRPQ+6CckOOl29O91ZeGpStrdGS1x1TEp0o=; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19808%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712076989%7C6%7CMCAAMB-1712076989%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1711479389s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; UserMatchHistory=AQKQHbt-oTRe4AAAAY57suv6OCAUqZNXKSczMTZ2g5qZz1s58prBJ5YjvaCqCQZBk7UWzEzIEiBH0yiCLOjOD1wkEG1TDRjHRPGQjG8Y_3DMsgyAX7aZeizllMAwDh-nEVgmPtyLnB-hpC2GXKgivEQrzz-7_OfZ7yVOMW0t-wO3vpjJAjtaOcTtL2tsmqrC9OEtuI_jy1RFB91h0_Cu3ioKe8xb6Jhegs0qXP6ynuQY6BDHbWJeQrzvKMUdPbtJ9QADbzHPr3NEk3Z4LE_cpcIsC2HDdCcwWhUDJ78MmstZIdNfTZ0nVHVPUGVP-Hvro_UgG38; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4158:u=247:x=1:i=1711472308:t=1711540940:v=2:sig=AQFtWBAyB43Zq72h20RayXgdxThybm5u"; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzEyMTI5NjUzOzI7MDIxb1FDm4/OAQd3RE96phr4myBQirtxp4cumtS5p/PhkAI=; liap=true; lidc="b=OB74:s=O:r=O:a=O:p=O:g=4532:u=252:x=1:i=1712129653:t=1712131143:v=2:sig=AQEHHUP-6BQJFHT-86M1VAdRS7sfW_fN"; JSESSIONID="ajax:5371233139676576627"; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOw2TMvE0AFsDybLtUTmv0FMxT50kAEGZ9VsWUe-PpCGDBaJfv3cu3EFB2F9WewOHhiJ99vjDLoxliKYuiiM5nt_Ivx92s6DJMCE-owqou0cPCGFDhyL_Rmu5_',
-    'csrf-token': 'ajax:5371233139676576627'
-    }
+#     payload = {}
+#     headers = {
+#     'accept': 'application/vnd.linkedin.normalized+json+2.1',
+#     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; liap=true; JSESSIONID="ajax:5371233139676576627"; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOtB0iaE0AQHehmeCXmo7JEQx3yzhQjkI1cvmPVd7EzPepRsZcwBgZaN9XMv4eSGcvul37iTmqpBD147YfRWhoW8-3x9ikT69bCEq_DRX8ACytmVxBtyl111Xf; lang=v=2&lang=en-us; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; li_mc=MTsyMTsxNzEyMTMyNjMyOzI7MDIxEOujgeP6A1uF93oEvaEg+fIAJjfK8Vs7qImxVpjeaz8=; UserMatchHistory=AQJVPgiTOiwfdAAAAY6jDr95_pWMNsUjTn69xHkgZEj9Ez4sQO2wBYEhmslKsa3P0suMzo-d_4QoDSYax4O0NGbzyTEKexrWpb777oYEKp9J2bBQGh6yd28i8G1arHkDC0DyqjHdCie9D8JPZoNBa4ms_n5HKpPfo460qqs0VMHmgoLtOUx-PveqG6D3BVOctHVOQ_MddhK8GdDit4JcAUCgsvje_7V02R0hMRGBxBwZsPrMfwj-O1U2EPGTmsRodndRn9jZ2INxkDl-vvw0p_abXhr7F5-XJ-L808to0dOlQqq10tHn1pOPmISnIFpd-QVmtbM; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lidc="b=OB74:s=O:r=O:a=O:p=O:g=4532:u=252:x=1:i=1712132637:t=1712136627:v=2:sig=AQFdII_5Lf9mKQxgOBkJHsM8_gwOxIoz"; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712737437%7C6%7CMCAAMB-1712737437%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712139837s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq1XHMHv0golcc9kyTlgPT0DQ7JBk5Weg1OFuj%252bBpbzR0yg1GKFeEO7FBR%252fAQh3%252fvoGMMS4yB67D9ec7jZcX51g1isL2VU7thmLU8lNVu23cEqSqzc23XEsnSvwUxxHx%252bzLkDNEGyOcJsJebOEcZWjWJvj90a49gGKwdqFTnBeghPmpl46CpkaXo%252b9ll0Y17aXNHqFPigu2LYSoW6N0pKT0M%253d; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzEyMTMyNDQ3OzI7MDIxDRXUR1kLsrM78f0RNi8WYGUzAhl1iMPau6k9YeWDtFY=; liap=true; JSESSIONID="ajax:5371233139676576627"; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOw2TMvE0AFsDybLtUTmv0FMxT50kAEGZ9VsWUe-PpCGDBaJfv3cu3EFB2F9WewOHhiJ99vjDLoxliKYuiiM5nt_Ivx92s6DJMCE-owqou0cPCGFDhyL_Rmu5_',
+#     'csrf-token': 'ajax:5371233139676576627'
+#     }
 
-    async with sem:
-        for attempt in range(max_retries):
-            try:
-                async with session.get(api_request_url, headers=headers) as response:
-                    print("In the async session")
-                    print(f"Response status: {response.status}")
-                    if response.status == 200:
-                        print("Response 200")
-                        data = await response.json()
-                        if data:
-                            print("We have data")
-                        company_segment = data.get('data', {}) \
-                            .get('jobsDashJobPostingDetailSectionsByCardSectionTypes', {}) \
-                            .get('elements', [{}])[0] \
-                            .get('jobPostingDetailSection', [{}])[0] \
-                            .get('companyCardV2', {}) \
-                            .get('company', {}) \
-                            .get('industryV2Taxonomy', [{}])[0] \
-                            .get('name', None)
-                        
-                        print(f"Company segment: {company_segment}")
+#     async with sem:
+#         for attempt in range(max_retries):
+#             try:
+#                 async with session.get(api_request_url, headers=headers, data=payload) as response:
+#                     # print("In the async session")
+#                     # print(f"Headers: {headers}")
+#                     # print(f"Response status: {response.status}")
+#                     # response_text = await response.text()
+#                     # print(f"Response text: {response_text}")
+#                     if response.status == 200:
+#                         data = await response.json()
+#                         if data:
+#                             company_segment = data.get('included', [{}])[1].get('name', None)
+#                         print(f"Company segment: {company_segment}")
 
-                        return company_segment
-            except Exception as e:
-                print(f"Request failed: {e}")
-                await asyncio.sleep(delay)    
-    return None        
+#                         return company_segment
+#             except Exception as e:
+#                 print(f"Request failed: {e}")
+#                 await asyncio.sleep(delay)    
+#     return None        
 
 async def extract_non_hiring_person(keywords, company_id, company_name, sem, session, max_retries=3, delay=1):
     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:{keywords},flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List({company_id})),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:12)&queryId=voyagerSearchDashClusters.95b56a377280ee0fdf38866e2fa1abbb"
@@ -206,7 +227,8 @@ async def extract_non_hiring_person(keywords, company_id, company_name, sem, ses
                             full_name = person.get('title', {}).get('text', None)
                             bio = person.get('primarySubtitle', {}).get('text', None)
                             
-                            processed.append((full_name, bio, linkedin_url_result))
+                            # if keywords in bio.lower():
+                            processed.append(("FALSE", full_name, bio, linkedin_url_result))
 
                         return processed
             except Exception as e:
@@ -217,9 +239,10 @@ async def extract_non_hiring_person(keywords, company_id, company_name, sem, ses
 async def hiring_person_or_not(job_posting_id, employee_threshold, less_than_keywords, more_than_keywords, sem, session):
     full_name, bio, linkedin_url = await extract_full_name_bio_and_linkedin_url(job_posting_id, sem, session)
     if full_name and bio and linkedin_url:
-        return [(full_name, bio, linkedin_url)]
+        hiring_team = "TRUE"
+        return [(hiring_team, full_name, bio, linkedin_url)]
     else:
-        job_title, company_name, employee_count, company_url, companyID = await extract_company_info(job_posting_id, sem, session)
+        posting, job_title, company_name, employee_count, company_url, company_segment, companyID = await extract_company_info(job_posting_id, sem, session)
 
         if employee_count is not None:
             company_keywords = less_than_keywords if employee_count <= employee_threshold else more_than_keywords
@@ -234,22 +257,22 @@ async def main(keyword, batches, employee_threshold, less_than_keywords, more_th
     sem = asyncio.Semaphore(semaphore_value)
     async with aiohttp.ClientSession() as session:
         all_job_posting_ids = await extract_all_job_posting_ids(keyword, batches, sem, session)
-        print(f"All job posting ids: {all_job_posting_ids}")
+        # print(f"All job posting ids: {all_job_posting_ids}")
         job_postings_to_process = len(all_job_posting_ids)
 
         tasks = []
         for job_posting in all_job_posting_ids:
             company_info_task = extract_company_info(job_posting, sem, session)
-            company_segment_task = extract_company_segment(job_posting, sem, session)
+            # company_segment_task = extract_company_segment(job_posting, sem, session)
             employee_info_task = hiring_person_or_not(job_posting, employee_threshold, less_than_keywords, more_than_keywords, sem, session)
-            tasks += [company_info_task, company_segment_task, employee_info_task]
+            tasks += [company_info_task, employee_info_task]
 
         all_results = await asyncio.gather(*tasks)
 
         # Group all results into tuples (will make the DataFrame processing a lot easier)
         grouped_results = []
-        for i in range(0, job_postings_to_process * 3, 3):
-            grouped_result = (all_results[i], all_results[i+1], all_results[i+2])
+        for i in range(0, job_postings_to_process * 2, 2):
+            grouped_result = (all_results[i], all_results[i+1])
             grouped_results.append(grouped_result)
     
     return grouped_results
@@ -329,24 +352,49 @@ def generate_excel(dataframe, result_name):
 #             st.error('Please enter a valid LinkedIn URL.')
 
 linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
+results_name = "linkedin_jobs_sem_seo.csv"
 
 start_time = time.time()
 print("Running...")
 keyword_search = re.search(r'keywords=([^&]+)', linkedin_job_url)
 keyword = keyword_search.group(1) if keyword_search else None
 print(f"Keyword: {keyword}")
-total_number_of_results = 3
+total_number_of_results = 5
 print(f"Total: {total_number_of_results}")
 batches = split_total_into_batches_of_100(total_number_of_results)
 print(f"Batches: {batches}")
 employee_threshold = 100
-less_than_keywords = "ceo"
-more_than_keywords = "cmo"
+less_than_keywords = "ceo, vd, founder"
+more_than_keywords = "cmo, head of marketing, marknadschef"
 
 grouped_results = asyncio.run(main(keyword, batches, employee_threshold, less_than_keywords, more_than_keywords))
 end_time = time.time()
 print(f"Done! Scraped info from {total_number_of_results} job ads in {end_time - start_time} seconds")
 print(grouped_results)
+
+results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Företagssegment':[], 'Företags-URL':[]}
+
+for result in grouped_results:
+    job_posting_id, job_title, company_name, employee_count, company_url, company_segment, company_id = result[0]
+    # company_segment = result[1]
+    for person in result[1]:
+        hiring_team, full_name, bio, linkedin_url = person
+        first_name, last_name = split_and_clean_full_name(full_name)
+
+        results['Hiring Team'].append(hiring_team)
+        results['Förnamn'].append(first_name)
+        results['Efternamn'].append(last_name)
+        results['Bio'].append(bio)
+        results['LinkedIn URL'].append(linkedin_url)
+        results['Jobbtitel som sökes'].append(job_title)
+        results['Jobbannons-URL'].append(f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden")
+        results['Företag'].append(company_name)
+        results['Antal anställda'].append(employee_count)
+        results['Företagssegment'].append(company_segment)
+        results['Företags-URL'].append(company_url)
+
+linkedin_jobs_df = pd.DataFrame.from_dict(results)
+linkedin_jobs_df.to_csv(results_name, index=False)
 
 with open ("times.txt", "a") as f:
     f.write(f"Total: {total_number_of_results}, Time: {end_time - start_time}\n")
@@ -449,10 +497,18 @@ with open ("times.txt", "a") as f:
 #             print(f"Job posting ID: {job_posting_id}")
 #             # job_posting_ids_list.append(job_posting_id)
 #             time.sleep(200)
+    
+# company_segment = data.get('data', {}) \
+#     .get('jobsDashJobPostingDetailSectionsByCardSectionTypes', {}) \
+#     .get('elements', [{}])[0] \
+#     .get('jobPostingDetailSection', [{}])[0] \
+#     .get('companyCardV2', {}) \
+#     .get('company', {}) \
+#     .get('industryV2Taxonomy', [{}])[0] \
+#     .get('name', None)
 
 # INVISE: 3803170223
-result_dataframe = pd.DataFrame(columns=['Hiring Team', 'Förnamn', 'Efternamn', 'Bio', 'LinkedIn URL', 'Jobbtitel som sökes', 'Jobbannons-url', 'Företag', 'Antal anställda', 'Företagssegment', 'Företags-url'])
-
-counter = 0
-hiring_team_counter = 0
-temp_data_list = []
+# result_dataframe = pd.DataFrame(columns=['Hiring Team', 'Förnamn', 'Efternamn', 'Bio', 'LinkedIn URL', 'Jobbtitel som sökes', 'Jobbannons-URL', 'Företag', 'Antal anställda', 'Företagssegment', 'Företags-URL'])
+# counter = 0
+# hiring_team_counter = 0
+# temp_data_list = []
