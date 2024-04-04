@@ -132,25 +132,25 @@ def split_and_clean_full_name(full_name):
 
 def extract_company_info(job_posting_id, max_retries=3):
     api_request_url = f"https://www.linkedin.com/voyager/api/jobs/jobPostings/{job_posting_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65"
-    payload = {}
+    #payload = {}
     headers = {
-    'accept-language': 'en-GB,en;q=0.9,fr-SE;q=0.8,fr;q=0.7,en-SE;q=0.6,en-US;q=0.5',
+    #'accept-language': 'en-GB,en;q=0.9,fr-SE;q=0.8,fr;q=0.7,en-SE;q=0.6,en-US;q=0.5',
     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; lang=v=2&lang=en-us; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; liap=true; JSESSIONID="ajax:2715582253737539260"; li_mc=MTsyMTsxNzEyMjMxMjI0OzI7MDIxEmEZDdiE8GxoqN6bX3J51PVMWKjq87vUcQ1i/o/0Ud4=; __cf_bm=K9OPT3Ix0HrD_IlTjDYANLCxbMHYJZSLqN7MszCxptk-1712231585-1.0.1.1-QVawzdfwQRsHtxtjtR7t68YJ9yfJeneTlD.32ll7xwvsdS1kKIo3SABPdttcUeIR0iPsRDtjdb_q7N0lslqcmQ; UserMatchHistory=AQK6RfznW9o3xgAAAY6o97vkHlUeIQxGEtFzhFDFtcdFCAXQ665jLZTUQDt5EhpMFQPjk2WmeQ7Qb0Db1YCn9tJiBpIEo24K6w78N264yKbaelqGwpS16pEbCoTE7zROlWUm2CITfdk6Ka-JMPL3lgfwFi-7PTXMmQZ4D-D3HeLdlP0_xeMBiY8tpy_H1dc8ygAfahxdFkzHoNjZzcGoG6K-iev7nQDQr2bneg1hPH83U2INoZLyhWxpLrasJDC9Ks3NS3bDogocBkI7-1qwGLs4i-MUfsc0aKJXkf6qgidM0r3IDfnl9wNXruOvgsPsXgRL3tw; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4190:u=253:x=1:i=1712231793:t=1712308566:v=2:sig=AQFzt72littBzVmdj0NAzrfjuaRlQspM"; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712836595%7C6%7CMCAAMB-1712836595%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712238995s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712823944%7C6%7CMCAAMB-1712823944%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712226344s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; UserMatchHistory=AQKz6POJSiLt1AAAAY6okULilyFDXuLLHMAMYVzy-IMAs6Dlwno_fksOjnrsAnsZpD2MUiiNSG9oGzLrbQNa4N5CTJqA0FOGwUAH3-vZ9blAScHMZjWEElHwe_wJf4WbR02jFr8oZXirGt2T5fmAiHm_27xgkRrk0ivUr11nWHvdhh6l_QpEkhkJhkL1gItuDoH1ok95GHg4SC0rIoD7Txfw0C_QUZnpE8oMvyyScBkPIIwEBHuDwDKIW9Bd8LPkVpLt-FRLcxHxceXm1RjE12H6A3hq8Hmugcmg5htGzvIiW-lBiKnLsYGUSPowBkKdDtoFxVk; _gcl_au=1.1.308589430.1710419664; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; aam_uuid=16424388958969701103162659259461292262; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; lang=v=2&lang=en-us; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; li_mc=MTsyMTsxNzEyMjMyMjk5OzI7MDIxuC3zI1LQwxwweI0/TTbN/C4WmBh+e9F0RtAxD38DujI=; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; liap=true; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4190:u=253:x=1:i=1712225077:t=1712308566:v=2:sig=AQFhNZWPI_v5oL4y8oX9xLFL8a3cbxtv"; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; test=cookie; visit=v=1&M; JSESSIONID="ajax:2715582253737539260"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm',
     'csrf-token': 'ajax:2715582253737539260',
-    'referer': 'https://www.linkedin.com/jobs/search/?currentJobId=3853449154&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL',
-    'sec-ch-ua': '"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"',
-    'sec-ch-ua-platform': '"Windows"',
+    # 'referer': 'https://www.linkedin.com/jobs/search/?currentJobId=3853449154&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL',
+    # 'sec-ch-ua': '"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"',
+    # 'sec-ch-ua-platform': '"Windows"',
     'sec-fetch-mode': 'cors',
-    'sec-fetch-site': 'same-origin',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-    'x-li-page-instance': 'urn:li:page:d_flagship3_search_srp_jobs;kOA/hIpURYGEhZyFcl/ZlQ==',
-    'x-li-pem-metadata': 'Voyager - Careers - Job Details=job-posting',
-    'x-li-track': '{"clientVersion":"1.13.13546.2","mpVersion":"1.13.13546.2","osName":"web","timezoneOffset":2,"timezone":"Europe/Stockholm","deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":2,"displayWidth":2880,"displayHeight":1800}'
+    # 'sec-fetch-site': 'same-origin',
+    # 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+    # 'x-li-page-instance': 'urn:li:page:d_flagship3_search_srp_jobs;kOA/hIpURYGEhZyFcl/ZlQ==',
+    # 'x-li-pem-metadata': 'Voyager - Careers - Job Details=job-posting',
+    # 'x-li-track': '{"clientVersion":"1.13.13546.2","mpVersion":"1.13.13546.2","osName":"web","timezoneOffset":2,"timezone":"Europe/Stockholm","deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":2,"displayWidth":2880,"displayHeight":1800}'
     }
 
     for attempt in range(max_retries):
         try:
-            response = requests.request("GET", api_request_url, headers=headers, data=payload)
+            response = requests.request("GET", api_request_url, headers=headers)
             if response.status_code == 200:
                 data = response.json()
                 job_title = data.get('title', None)
@@ -390,9 +390,9 @@ print(job_posting_id)
 job_posting_id = "3820469408"
 full_name, bio, url = extract_full_name_bio_and_linkedin_url(job_posting_id)
 print(full_name, bio, url)
-# company_info = extract_company_info(job_posting_id)
-# print(company_info)
-# job_posting_id, job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
+company_info = extract_company_info(job_posting_id)
+print(company_info)
+job_posting_id, job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
 # company_people = extract_non_hiring_person(companyID, over_threshold_keywords, max_people_per_company)
 # print(company_people)
 
