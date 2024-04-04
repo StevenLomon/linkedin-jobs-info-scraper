@@ -90,6 +90,7 @@ async def extract_full_name_bio_and_linkedin_url(job_posting_id, sem, session, m
             try:
                 async with session.get(api_request_url, headers=headers) as response:
                     if response.status == 200:
+                        print("HIRING TEAM PERSON STATUS 200")
                         data = await response.json()
                         elements = data.get('elements', [{}])
                         full_name = elements[0].get('title', {}).get('text', None)
@@ -197,13 +198,15 @@ async def extract_company_info(job_posting_id, sem, session, max_retries=3, dela
 #                 await asyncio.sleep(delay)    
 #     return None        
 
-async def extract_non_hiring_person(keywords, company_id, company_name, sem, session, max_retries=3, delay=1):
+async def extract_non_hiring_person(company_id, keywords, max_people_per_company, sem, session, max_retries=3, delay=1): 
     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:{keywords},flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List({company_id})),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:12)&queryId=voyagerSearchDashClusters.95b56a377280ee0fdf38866e2fa1abbb"
     headers = {
     'accept': 'application/vnd.linkedin.normalized+json+2.1',
     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; liap=true; JSESSIONID="ajax:5371233139676576627"; AnalyticsSyncHistory=AQIdocYcGpv1SwAAAY50EHPdIJOXJnTMkM1IqKRCN-xjtebWOGQgAfFoubhez_GPLJtHRjCZyED3AWxvqFIYaQ; lms_ads=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lms_analytics=AQHHU3ZA76qOPgAAAY50EHTSYy32Va0AfZIZ_naHk1TnVWUYdKtxhz6LuM_j61Vi7XfSximgnyGzdYOGfYoTI8VLA4vjH1ID; lang=v=2&lang=en-us; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19810%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712132028%7C6%7CMCAAMB-1712132028%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1711534428s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq%252fDg1P2Me884P8DqJE%252bu%252bhdOIkdyU2Cd9w7yHB6iYtKb6U8xaAwTvjnq2ssHPK9ys0CAhVje7nR0DTLdIy9PE45kvhPJ3sibyhZTSZKysPbaKCqnS2Sh571VGFuY8f7wMKVMw9Fr9GO9AFcBiIYaQR39wL6dxjxiNCgNyh2USDm5N%252boMdbTeHx8KVUtII%252b%252fAwOj5zdC0JUS4BawY8JnOEP8%253d; li_mc=MTsyMTsxNzExNTM0MjE5OzI7MDIx1u11r1q1nZqdf9VZ9i4emq/otsc8a1aE1Ey3hNklH0w=; UserMatchHistory=AQKXWw-1YRtD4gAAAY5_a8Auf7UfWtLREei053hA5noLL671okszgbKq2Zb2dZBffrFWdvFTgBDY0Lu9DPzgLkRCsvcXBATGNVCUaCU5ECIr9seK7Mga8vwwisdtb5bCJMpPjoCjBEobBEjSJqs3zHYzQfmOknbzSQu5oQTrY7i5TV5Hhec30h6jewTNa74LM0zJXCDTufhARjnsXh_KrXpvQbpffv1Aqg8XuHnNV48lrNxSYaDqhFnLoEiADcTd_z5PAm9zAT6n0yfNnljBhoKuvizFtRi82bigcnx30pBXodVkoqZK1B1qiskaux2xtpZbx-o; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4160:u=247:x=1:i=1711534752:t=1711617371:v=2:sig=AQFNrIKZoqRhrNuX34UJHAh5kfxs_Skg"; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzExNTM2MTgyOzI7MDIxZbVJ/rJpkAJJ7wrIljpYP8RVlT8ZZ7duyC5fy/bxuWw=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4160:u=247:x=1:i=1711534708:t=1711617371:v=2:sig=AQGsSO7VGSkbkYwJDZahwdPhzv2WlGE8"',
     'csrf-token': 'ajax:5371233139676576627'
     }
+
+    keywords_list = keywords.lower().split(", ")
 
     async with sem:
         for attempt in range(max_retries):
@@ -218,6 +221,9 @@ async def extract_non_hiring_person(keywords, company_id, company_name, sem, ses
                         
                         processed = []
                         for person in filtered_people:
+                            if  len(processed) >= max_people_per_company:
+                                break # Exit the loop once we have enough people
+
                             if not isinstance(person, dict):
                                 continue
 
@@ -230,8 +236,9 @@ async def extract_non_hiring_person(keywords, company_id, company_name, sem, ses
                             full_name = person.get('title', {}).get('text', None)
                             bio = person.get('primarySubtitle', {}).get('text', None)
                             
-                            # if keywords in bio.lower():
-                            processed.append(("FALSE", full_name, bio, linkedin_url_result))
+                            is_present = any(title in bio.lower() for title in keywords_list)
+                            if is_present:
+                                processed.append(("FALSE", full_name, bio, linkedin_url_result))
 
                         return processed
             except Exception as e:
@@ -239,7 +246,7 @@ async def extract_non_hiring_person(keywords, company_id, company_name, sem, ses
                 await asyncio.sleep(delay)
     return []
 
-async def hiring_person_or_not(job_posting_id, employee_threshold, less_than_keywords, more_than_keywords, sem, session):
+async def hiring_person_or_not(job_posting_id, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, sem, session):
     full_name, bio, linkedin_url = await extract_full_name_bio_and_linkedin_url(job_posting_id, sem, session)
     if full_name and bio and linkedin_url:
         hiring_team = "TRUE"
@@ -248,15 +255,15 @@ async def hiring_person_or_not(job_posting_id, employee_threshold, less_than_key
         posting, job_title, company_name, employee_count, company_url, companyID = await extract_company_info(job_posting_id, sem, session)
 
         if employee_count is not None:
-            company_keywords = less_than_keywords if employee_count <= employee_threshold else more_than_keywords
+            company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords
             url_formatted_keywords = company_keywords.replace(', ', '%20OR%20').strip()        
-            company_people = await extract_non_hiring_person(url_formatted_keywords, companyID, company_name, sem, session)
+            company_people = await extract_non_hiring_person(companyID, url_formatted_keywords, max_people_per_company, sem, session)
             return company_people
         else:
             return []
 
 
-async def main(keyword, batches, employee_threshold, less_than_keywords, more_than_keywords, semaphore_value=5):
+async def main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, semaphore_value=5):
     sem = asyncio.Semaphore(semaphore_value)
     async with aiohttp.ClientSession() as session:
         all_job_posting_ids = await extract_all_job_posting_ids(keyword, batches, sem, session)
@@ -267,7 +274,7 @@ async def main(keyword, batches, employee_threshold, less_than_keywords, more_th
         for job_posting in all_job_posting_ids:
             company_info_task = extract_company_info(job_posting, sem, session)
             # company_segment_task = extract_company_segment(job_posting, sem, session)
-            employee_info_task = hiring_person_or_not(job_posting, employee_threshold, less_than_keywords, more_than_keywords, sem, session)
+            employee_info_task = hiring_person_or_not(job_posting, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, sem, session)
             tasks += [company_info_task, employee_info_task]
 
         all_results = await asyncio.gather(*tasks)
@@ -300,59 +307,60 @@ def generate_excel(dataframe, result_name):
     return output
 
 ### STREAMLIT CODE
-# st.title('LinkedIn Job search URL to CSV Generator V2')
-# st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL')
+st.title('LinkedIn Job search URL to CSV Generator V2')
+st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL')
 
-# # User input for LinkedIn URL
-# linkedin_job_url = st.text_input('Enter URL from the LinkedIn Job search:', '')
-# result_name = st.text_input('Enter a name for the resulting csv/Excel file:', '')
-# max_results_to_check = st.text_input('Enter maximum amounts of jobs to check (leave blank to scrape all available jobs for the query):', '')
-# st.write("If there is no Hiring Team available and the company has less than or equal to")
-# employee_threshold = st.number_input("Employee Threshold", min_value=1, value=100, step=1, format="%d", label_visibility="collapsed")
-# less_than_keywords = st.text_input('employees, search the company for (separate keywords with comma):', '')
-# more_than_keywords = st.text_input('If it has more, search the company for: (separate keywords with comma)', '')
+# User input for LinkedIn URL
+linkedin_job_url = st.text_input('Enter URL from the LinkedIn Job search:', '')
+result_name = st.text_input('Enter a name for the resulting csv/Excel file:', '')
+max_results_to_check = st.text_input('Enter maximum amounts of jobs to check (leave blank to scrape all available jobs for the query):', '')
+st.write("If there is no Hiring Team available and the company has less than or equal to")
+employee_threshold = st.number_input("Employee Threshold", min_value=1, value=100, step=1, format="%d", label_visibility="collapsed")
+under_threshold_keywords = st.text_input('employees, search the company for (separate keywords with comma):', '')
+over_threshold_keywords = st.text_input('If it has more, search the company for: (separate keywords with comma)', '')
+max_people_per_company = st.text_input('Max amount of people scraper per company if no Hiring Team:', '')
 
-# # Radio button to choose the file format
-# file_format = st.radio("Choose the file format for download:", ('csv', 'xlsx'))
+# Radio button to choose the file format
+file_format = st.radio("Choose the file format for download:", ('csv', 'xlsx'))
 
-# # Button to the result file
-# if st.button('Generate File'):
-#     with st.spinner('Generating file, hold on'):
-#         if linkedin_job_url:
-#             keyword_search = re.search(r'keywords=([^&]+)', linkedin_job_url)
-#             keyword = keyword_search.group(1) if keyword_search else None
+# Button to the result file
+if st.button('Generate File'):
+    with st.spinner('Generating file, hold on'):
+        if linkedin_job_url:
+            keyword_search = re.search(r'keywords=([^&]+)', linkedin_job_url)
+            keyword = keyword_search.group(1) if keyword_search else None
 
-#             start_time = time.time()
-#             total_number_of_results = get_total_number_of_results(keyword)
-#             if total_number_of_results is None:
-#                 st.error("Could not fetch total amount of ads. Try again in a bit")
+            start_time = time.time()
+            total_number_of_results = get_total_number_of_results(keyword)
+            if total_number_of_results is None:
+                st.error("Could not fetch total amount of ads. Try again in a bit")
 
-#             if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
-#                 total_number_of_results = int(max_results_to_check)
-#             print(f"Attempting to scrape info from {total_number_of_results} job ads!")
+            if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
+                total_number_of_results = int(max_results_to_check)
+            print(f"Attempting to scrape info from {total_number_of_results} job ads!")
 
-#             batches = split_total_into_batches_of_100(total_number_of_results)
-#             print(f"Splitting {total_number_of_results} in batches: {batches}")
+            batches = split_total_into_batches_of_100(total_number_of_results)
+            print(f"Splitting {total_number_of_results} in batches: {batches}")
 
-#             results = asyncio.run(main(keyword, batches, employee_threshold, less_than_keywords, more_than_keywords))
-#             end_time = time.time()
-#             print("Done!")
-#             print(results)
-#             print(len(results))
-#             st.text(f"Done! Scraped {total_number_of_results} products in {end_time - start_time} seconds")
-#             # st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
+            results = asyncio.run(main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company))
+            end_time = time.time()
+            print("Done!")
+            print(results)
+            print(len(results))
+            st.text(f"Done! Scraped {total_number_of_results} products in {end_time - start_time} seconds")
+            # st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
 
-#             # if file_format == 'csv':
-#             #     csv_file = generate_csv(scraped_data_df, result_name)
-#             #     with open(csv_file, "rb") as file:
-#             #         st.download_button(label="Download CSV", data=file, file_name=csv_file, mime='text/csv')
-#             #     st.success(f'CSV file generated: {csv_file}')
-#             # elif file_format == 'xlsx':
-#             #     excel_file = generate_excel(scraped_data_df, result_name)
-#             #     st.download_button(label="Download Excel", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-#             #     st.success(f'Excel file generated: {result_name}.xlsx')
-#         else:
-#             st.error('Please enter a valid LinkedIn URL.')
+            # if file_format == 'csv':
+            #     csv_file = generate_csv(scraped_data_df, result_name)
+            #     with open(csv_file, "rb") as file:
+            #         st.download_button(label="Download CSV", data=file, file_name=csv_file, mime='text/csv')
+            #     st.success(f'CSV file generated: {csv_file}')
+            # elif file_format == 'xlsx':
+            #     excel_file = generate_excel(scraped_data_df, result_name)
+            #     st.download_button(label="Download Excel", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            #     st.success(f'Excel file generated: {result_name}.xlsx')
+        else:
+            st.error('Please enter a valid LinkedIn URL.')
 
 linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
 results_name = "linkedin_jobs_sem_seo_no_segment.csv"

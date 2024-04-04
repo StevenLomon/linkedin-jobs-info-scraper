@@ -1,6 +1,6 @@
 The company link in the right side bar is not always clickable How does it show up in the JSON request result?
 The keywords search can give a lot of results: https://www.linkedin.com/company/ssab/people/?keywords=CMO%20OR%20Chief%20of%20Marketing%20OR%20Head%20of%20Marketing%20OR%20Marknadschef%20OR%20Marketing%20Director
-Try to match the keywords to the bio the best we can. The top result in this 
+Try to match the keywords to the bio the best we can
 Let's put the keywords from the front end in a list
 FRONT END: "CMO, Chief of Marketing, Head of Marketing, Marknadschef, Marketing Director, Vice President Marketing"
 LINKEDIN QUERY: "CMO%20OR%20Chief%20of%20Marketing%20OR%20Head%20of%20Marketing%20OR%20Marknadschef%20OR%20Marketing%20Director%20OR%20Vice%20President%20Marketing"
