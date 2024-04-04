@@ -45,27 +45,35 @@ async def fetch_job_posting_ids(keyword, batch, sem, session, max_retries=3, del
     batch_size = stop - start
     print(f"Batch size: {batch_size}")
 
-    api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={batch_size}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
+    # api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count={batch_size}&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start={start}"
+    api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-67&count={batch_size}&q=jobSearch&query=(origin:SWITCH_SEARCH_VERTICAL,keywords:{keyword},spellCorrectionEnabled:true)&start={start}"
+    payload = {}
     headers = {
-    'csrf-token': 'ajax:5371233139676576627',
-    'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
-    }
+        'accept': 'application/vnd.linkedin.normalized+json+2.1',
+        'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712823944%7C6%7CMCAAMB-1712823944%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712226344s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; li_g_recent_logout=v=1&true; lang=v=2&lang=en-us; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; liap=true; JSESSIONID="ajax:2715582253737539260"; li_mc=MTsyMTsxNzEyMjI0NzMyOzI7MDIxzODtaxUnhH03NiFJxX2nAcg+Zt1SBwH5NvsRAxtAtmk=; UserMatchHistory=AQKpLFT71zoM5QAAAY6olBvzmoHGZBhPQlhG2QJfDL6VSRwwrqxGU5OYng_P7oC3i705LjK1mJLCoudXGg-J0NDW4inNM4LtM90f1IHjAKPkiKBQOsqx7x89ZsAUgQ_Id-tKl50XVNuPZnAfsIVhngEuxkV6538FxYjln7OKcc94E830eKTIGCzm9sUFevFdtaLpUziPshqg7A5qPAlpsBx_ltoEvRBdb6eZSTz-zYDAogKN9htKasaYbT-8BPcjbuJVhvAmT24k4rFh07c3Zx78yU0PaPxnN68ue8yS7BangTpKgFAr9JustG_rujNj9mHuB9A; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4190:u=253:x=1:i=1712225263:t=1712308566:v=2:sig=AQGNtWMcukq66YUQAxEHE2Y2woh1guTQ"; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712823944%7C6%7CMCAAMB-1712823944%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712226344s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; UserMatchHistory=AQKz6POJSiLt1AAAAY6okULilyFDXuLLHMAMYVzy-IMAs6Dlwno_fksOjnrsAnsZpD2MUiiNSG9oGzLrbQNa4N5CTJqA0FOGwUAH3-vZ9blAScHMZjWEElHwe_wJf4WbR02jFr8oZXirGt2T5fmAiHm_27xgkRrk0ivUr11nWHvdhh6l_QpEkhkJhkL1gItuDoH1ok95GHg4SC0rIoD7Txfw0C_QUZnpE8oMvyyScBkPIIwEBHuDwDKIW9Bd8LPkVpLt-FRLcxHxceXm1RjE12H6A3hq8Hmugcmg5htGzvIiW-lBiKnLsYGUSPowBkKdDtoFxVk; __cf_bm=46m5tvraQgrQpHhlW.Lwh9JA1WKE1fNfwR6JoACj1tc-1712225398-1.0.1.1-nXNAZAkaZHgAm2sBxkPt_tsSjFNf8oliPxZqefYXuc9oq6O6Lbwhyr7mIKovqCN1.OeYtBp7PvBct4AgSGNnUw; _gcl_au=1.1.308589430.1710419664; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; aam_uuid=16424388958969701103162659259461292262; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; lang=v=2&lang=en-us; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; li_mc=MTsyMTsxNzEyMjI1NDc1OzI7MDIx4g1UjJLNxrgq1LN73193ANa7nJGrX7QYtI3diLCYb2I=; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; liap=true; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4190:u=253:x=1:i=1712225077:t=1712308566:v=2:sig=AQFhNZWPI_v5oL4y8oX9xLFL8a3cbxtv"; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; test=cookie; visit=v=1&M; JSESSIONID="ajax:2715582253737539260"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm',
+        'csrf-token': 'ajax:2715582253737539260',
+        'sec-fetch-mode': 'cors'
+        }
 
     async with sem:
         for attempt in range(max_retries):
             try:
-                async with session.get(api_request_url, headers=headers) as response:
+                async with session.get(api_request_url, headers=headers, data=payload) as response:
                     if response.status == 200:
                         data = await response.json()
 
                         job_posting_ids_list = []
-                        prefetchJobPostingCardUrns = data.get('metadata', {}) \
-                            .get('jobCardPrefetchQueries', [{}])[0] \
-                            .get('prefetchJobPostingCardUrns', {})
-                        for job_posting in prefetchJobPostingCardUrns:
-                            job_posting_id_search = re.search(r"(\d+)", job_posting)
-                            job_posting_id = job_posting_id_search.group(1) if job_posting_id_search else None
-                            job_posting_ids_list.append(job_posting_id)
+                        # Navigate to jobCardPrefetchQueries and get the first item's prefetchJobPostingCardUrns
+                        prefetch_job_posting_card_urns = data.get('data', {}) \
+                                                            .get('metadata', {}) \
+                                                            .get('jobCardPrefetchQueries', [{}])[0] \
+                                                            .get('prefetchJobPostingCardUrns', [])
+                        for urn in prefetch_job_posting_card_urns:
+                            job_posting_id_search = re.search(r"urn:li:fsd_jobPostingCard:\((\d+),JOB_DETAILS\)", urn)
+                            if job_posting_id_search:
+                                job_posting_id = job_posting_id_search.group(1)
+                                job_posting_ids_list.append(job_posting_id)
+
             except Exception as e:
                 print(f"Request failed: {e}")
                 await asyncio.sleep(delay)
@@ -112,25 +120,6 @@ def split_and_clean_full_name(full_name):
     last_name = name_parts[-1] if len(name_parts) > 1 else ''  # Check to avoid index error if name_parts is empty
     return (first_name, last_name)
 
-# async def fetch_and_parse_company_segment(company_url, session):
-#     try:
-#         # Fetch the company page content asynchronously. Add headers if necessary
-#         async with session.get(company_url) as company_response:
-#             if company_response.status == 200:
-#                 company_page_content = await company_response.text()
-
-#                 # Parse the HTML content in a separate threat to avoid blocking
-#                 def parse_html(content):
-#                     soup = BeautifulSoup(content, 'html.parser')
-#                     segment_div = soup.find('div', attrs={'class':'org-top-card-summary-info-list__info-item'})
-#                     return segment_div.text if segment_div else None
-
-#                 company_segment = await asyncio.to_thread(parse_html, company_page_content)
-#                 return company_segment
-#     except Exception as e:
-#         print(f"Error fetching pr parsing company page: {e}")
-#     return None
-
 async def extract_company_info(job_posting_id, sem, session, max_retries=3, delay=1):
     api_request_url = f"https://www.linkedin.com/voyager/api/jobs/jobPostings/{job_posting_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65"
     headers = {
@@ -163,40 +152,7 @@ async def extract_company_info(job_posting_id, sem, session, max_retries=3, dela
             except Exception as e:
                 print(f"Request failed: {e}")
                 await asyncio.sleep(delay)
-    return None, None, None, None, None, None, None
-
-# async def extract_company_segment(job_posting_id, sem, session, max_retries=1, delay=1):
-#     encoded_job_posting_id = quote(job_posting_id)
-#     # api_request_url = f"https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed&variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{encoded_job_posting_id},includeSecondaryActionsV2:true)"
-#     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{encoded_job_posting_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed"
-
-#     payload = {}
-#     headers = {
-#     'accept': 'application/vnd.linkedin.normalized+json+2.1',
-#     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; liap=true; JSESSIONID="ajax:5371233139676576627"; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOtB0iaE0AQHehmeCXmo7JEQx3yzhQjkI1cvmPVd7EzPepRsZcwBgZaN9XMv4eSGcvul37iTmqpBD147YfRWhoW8-3x9ikT69bCEq_DRX8ACytmVxBtyl111Xf; lang=v=2&lang=en-us; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; li_mc=MTsyMTsxNzEyMTMyNjMyOzI7MDIxEOujgeP6A1uF93oEvaEg+fIAJjfK8Vs7qImxVpjeaz8=; UserMatchHistory=AQJVPgiTOiwfdAAAAY6jDr95_pWMNsUjTn69xHkgZEj9Ez4sQO2wBYEhmslKsa3P0suMzo-d_4QoDSYax4O0NGbzyTEKexrWpb777oYEKp9J2bBQGh6yd28i8G1arHkDC0DyqjHdCie9D8JPZoNBa4ms_n5HKpPfo460qqs0VMHmgoLtOUx-PveqG6D3BVOctHVOQ_MddhK8GdDit4JcAUCgsvje_7V02R0hMRGBxBwZsPrMfwj-O1U2EPGTmsRodndRn9jZ2INxkDl-vvw0p_abXhr7F5-XJ-L808to0dOlQqq10tHn1pOPmISnIFpd-QVmtbM; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lidc="b=OB74:s=O:r=O:a=O:p=O:g=4532:u=252:x=1:i=1712132637:t=1712136627:v=2:sig=AQFdII_5Lf9mKQxgOBkJHsM8_gwOxIoz"; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712737437%7C6%7CMCAAMB-1712737437%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712139837s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq1XHMHv0golcc9kyTlgPT0DQ7JBk5Weg1OFuj%252bBpbzR0yg1GKFeEO7FBR%252fAQh3%252fvoGMMS4yB67D9ec7jZcX51g1isL2VU7thmLU8lNVu23cEqSqzc23XEsnSvwUxxHx%252bzLkDNEGyOcJsJebOEcZWjWJvj90a49gGKwdqFTnBeghPmpl46CpkaXo%252b9ll0Y17aXNHqFPigu2LYSoW6N0pKT0M%253d; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzEyMTMyNDQ3OzI7MDIxDRXUR1kLsrM78f0RNi8WYGUzAhl1iMPau6k9YeWDtFY=; liap=true; JSESSIONID="ajax:5371233139676576627"; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOw2TMvE0AFsDybLtUTmv0FMxT50kAEGZ9VsWUe-PpCGDBaJfv3cu3EFB2F9WewOHhiJ99vjDLoxliKYuiiM5nt_Ivx92s6DJMCE-owqou0cPCGFDhyL_Rmu5_',
-#     'csrf-token': 'ajax:5371233139676576627'
-#     }
-
-#     async with sem:
-#         for attempt in range(max_retries):
-#             try:
-#                 async with session.get(api_request_url, headers=headers, data=payload) as response:
-#                     # print("In the async session")
-#                     # print(f"Headers: {headers}")
-#                     # print(f"Response status: {response.status}")
-#                     # response_text = await response.text()
-#                     # print(f"Response text: {response_text}")
-#                     if response.status == 200:
-#                         data = await response.json()
-#                         if data:
-#                             company_segment = data.get('included', [{}])[1].get('name', None)
-#                         print(f"Company segment: {company_segment}")
-
-#                         return company_segment
-#             except Exception as e:
-#                 print(f"Request failed: {e}")
-#                 await asyncio.sleep(delay)    
-#     return None        
+    return None, None, None, None, None, None  
 
 async def extract_non_hiring_person(company_id, keywords, max_people_per_company, sem, session, max_retries=3, delay=1): 
     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:{keywords},flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List({company_id})),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:12)&queryId=voyagerSearchDashClusters.95b56a377280ee0fdf38866e2fa1abbb"
@@ -267,7 +223,7 @@ async def main(keyword, batches, employee_threshold, under_threshold_keywords, o
     sem = asyncio.Semaphore(semaphore_value)
     async with aiohttp.ClientSession() as session:
         all_job_posting_ids = await extract_all_job_posting_ids(keyword, batches, sem, session)
-        # print(f"All job posting ids: {all_job_posting_ids}")
+        print(f"All job posting ids: {all_job_posting_ids}")
         job_postings_to_process = len(all_job_posting_ids)
 
         tasks = []
@@ -377,21 +333,13 @@ print(f"Batches: {batches}")
 employee_threshold = 100
 under_threshold_keywords = "CEO, VD, Founder"
 over_threshold_keywords = "CMO, Chief of Marketing, Head of Marketing, Marknadschef, Marketing Director, Director Marketing, Vice President Marketing"
-under_threshold_list = under_threshold_keywords.lower().split(", ")
-over_threshold_list = over_threshold_keywords.lower().split(", ")
+max_people_per_company = 3
 
-linkedin_bio = "Consultant and expert in customer relations, business development and sales"
-long_bio = "MBA, masters in Business Administration at SLU Studied International Business Management and Economics at Mälardalen University works at Aredu AB"
-
-is_present = any(title in linkedin_bio.lower() for title in under_threshold_list)
-print(is_present)
-
-
-
-# grouped_results = asyncio.run(main(keyword, batches, employee_threshold, less_than_keywords, more_than_keywords))
-# end_time = time.time()
-# print(f"Done! Scraped info from {total_number_of_results} job ads in {end_time - start_time} seconds")
+grouped_results = asyncio.run(main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company))
+end_time = time.time()
+print(f"Done! Scraped info from {total_number_of_results} job ads in {end_time - start_time} seconds")
 # print(grouped_results)
+# print(len(grouped_results))
 
 # results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Företags-URL':[]}
 
@@ -533,3 +481,55 @@ print(is_present)
 # counter = 0
 # hiring_team_counter = 0
 # temp_data_list = []
+
+# async def fetch_and_parse_company_segment(company_url, session):
+#     try:
+#         # Fetch the company page content asynchronously. Add headers if necessary
+#         async with session.get(company_url) as company_response:
+#             if company_response.status == 200:
+#                 company_page_content = await company_response.text()
+
+#                 # Parse the HTML content in a separate threat to avoid blocking
+#                 def parse_html(content):
+#                     soup = BeautifulSoup(content, 'html.parser')
+#                     segment_div = soup.find('div', attrs={'class':'org-top-card-summary-info-list__info-item'})
+#                     return segment_div.text if segment_div else None
+
+#                 company_segment = await asyncio.to_thread(parse_html, company_page_content)
+#                 return company_segment
+#     except Exception as e:
+#         print(f"Error fetching pr parsing company page: {e}")
+#     return None
+
+# async def extract_company_segment(job_posting_id, sem, session, max_retries=1, delay=1):
+#     encoded_job_posting_id = quote(job_posting_id)
+#     # api_request_url = f"https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed&variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{encoded_job_posting_id},includeSecondaryActionsV2:true)"
+#     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{encoded_job_posting_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed"
+
+#     payload = {}
+#     headers = {
+#     'accept': 'application/vnd.linkedin.normalized+json+2.1',
+#     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; liap=true; JSESSIONID="ajax:5371233139676576627"; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOtB0iaE0AQHehmeCXmo7JEQx3yzhQjkI1cvmPVd7EzPepRsZcwBgZaN9XMv4eSGcvul37iTmqpBD147YfRWhoW8-3x9ikT69bCEq_DRX8ACytmVxBtyl111Xf; lang=v=2&lang=en-us; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; li_mc=MTsyMTsxNzEyMTMyNjMyOzI7MDIxEOujgeP6A1uF93oEvaEg+fIAJjfK8Vs7qImxVpjeaz8=; UserMatchHistory=AQJVPgiTOiwfdAAAAY6jDr95_pWMNsUjTn69xHkgZEj9Ez4sQO2wBYEhmslKsa3P0suMzo-d_4QoDSYax4O0NGbzyTEKexrWpb777oYEKp9J2bBQGh6yd28i8G1arHkDC0DyqjHdCie9D8JPZoNBa4ms_n5HKpPfo460qqs0VMHmgoLtOUx-PveqG6D3BVOctHVOQ_MddhK8GdDit4JcAUCgsvje_7V02R0hMRGBxBwZsPrMfwj-O1U2EPGTmsRodndRn9jZ2INxkDl-vvw0p_abXhr7F5-XJ-L808to0dOlQqq10tHn1pOPmISnIFpd-QVmtbM; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lidc="b=OB74:s=O:r=O:a=O:p=O:g=4532:u=252:x=1:i=1712132637:t=1712136627:v=2:sig=AQFdII_5Lf9mKQxgOBkJHsM8_gwOxIoz"; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712737437%7C6%7CMCAAMB-1712737437%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712139837s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq1XHMHv0golcc9kyTlgPT0DQ7JBk5Weg1OFuj%252bBpbzR0yg1GKFeEO7FBR%252fAQh3%252fvoGMMS4yB67D9ec7jZcX51g1isL2VU7thmLU8lNVu23cEqSqzc23XEsnSvwUxxHx%252bzLkDNEGyOcJsJebOEcZWjWJvj90a49gGKwdqFTnBeghPmpl46CpkaXo%252b9ll0Y17aXNHqFPigu2LYSoW6N0pKT0M%253d; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzEyMTMyNDQ3OzI7MDIxDRXUR1kLsrM78f0RNi8WYGUzAhl1iMPau6k9YeWDtFY=; liap=true; JSESSIONID="ajax:5371233139676576627"; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOw2TMvE0AFsDybLtUTmv0FMxT50kAEGZ9VsWUe-PpCGDBaJfv3cu3EFB2F9WewOHhiJ99vjDLoxliKYuiiM5nt_Ivx92s6DJMCE-owqou0cPCGFDhyL_Rmu5_',
+#     'csrf-token': 'ajax:5371233139676576627'
+#     }
+
+#     async with sem:
+#         for attempt in range(max_retries):
+#             try:
+#                 async with session.get(api_request_url, headers=headers, data=payload) as response:
+#                     # print("In the async session")
+#                     # print(f"Headers: {headers}")
+#                     # print(f"Response status: {response.status}")
+#                     # response_text = await response.text()
+#                     # print(f"Response text: {response_text}")
+#                     if response.status == 200:
+#                         data = await response.json()
+#                         if data:
+#                             company_segment = data.get('included', [{}])[1].get('name', None)
+#                         print(f"Company segment: {company_segment}")
+
+#                         return company_segment
+#             except Exception as e:
+#                 print(f"Request failed: {e}")
+#                 await asyncio.sleep(delay)    
+#     return None      
