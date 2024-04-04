@@ -1,4 +1,4 @@
-import time, re, requests
+import time, re, requests, random
 import pandas  as pd
 import streamlit as st
 from rich import print, print_json
@@ -7,7 +7,7 @@ from urllib.parse import quote
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-def get_total_number_of_results(keyword, max_retries=3, delay=1):
+def get_total_number_of_results(keyword, max_retries=3):
     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count=100&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start=0"
         
     payload = {}
@@ -29,7 +29,7 @@ def get_total_number_of_results(keyword, max_retries=3, delay=1):
                     return total
         except requests.requests.exceptions.RequestExceptions.Requestrequests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
-            time.sleep(delay)
+            time.sleep(random.randint(4,8))
     return None     
 
 # We can only fetch 100 at a time
@@ -40,7 +40,7 @@ def split_total_into_batches_of_100(total):
         batches[-1] = (batches[-1][0], total)
     return batches
 
-def fetch_job_posting_ids(keyword, batch, max_retries=3, delay=1):
+def fetch_job_posting_ids(keyword, batch, max_retries=3):
     start, stop = batch
     print(f"Start: {start}, Stop: {stop}")
     batch_size = stop - start
@@ -79,7 +79,7 @@ def fetch_job_posting_ids(keyword, batch, max_retries=3, delay=1):
 
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
-            time.sleep(delay)
+            time.sleep(random.randint(4,8))
     return job_posting_ids_list #Return the list, even if its empty
 
 def extract_all_job_posting_ids(keyword, batches):
@@ -90,7 +90,7 @@ def extract_all_job_posting_ids(keyword, batches):
             job_posting_ids.extend(future.result())
     return job_posting_ids
 
-def extract_full_name_bio_and_linkedin_url(job_posting_id, max_retries=3, delay=1):
+def extract_full_name_bio_and_linkedin_url(job_posting_id, max_retries=3):
     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(cardSectionTypes:List(HIRING_TEAM_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{job_posting_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed"
     headers = {
     'accept': 'application/vnd.linkedin.normalized+json+2.1',
@@ -104,21 +104,25 @@ def extract_full_name_bio_and_linkedin_url(job_posting_id, max_retries=3, delay=
             response = requests.request("GET", api_request_url, headers=headers)
             if response.status_code == 200:
                 data = response.json()
-                hiring_team_card = data.get('data', {}) \
-                    .get('data', {}) \
-                    .get('jobsDashJobPostingDetailSectionsByCardSectionTypes', {}) \
-                    .get('elements', [{}])[0] \
-                    .get('jobPostingDetailSection', [{}])[0] \
-                    .get('hiringTeamCard', {})
-                if hiring_team_card:
-                    full_name = hiring_team_card.get('title', {}).get('text', None)
-                    bio = hiring_team_card.get('subtitle', {}).get('text', None)
-                    linkedin_url = hiring_team_card.get('navigationUrl')   
+                elements = data.get('data', {}) \
+                .get('data', {}) \
+                .get('jobsDashJobPostingDetailSectionsByCardSectionTypes', {}) \
+                .get('elements', [])
+
+                if elements:
+                    jobPostingDetailSection = elements[0].get('jobPostingDetailSection', [])
+                    if jobPostingDetailSection:
+                        hiring_team_card = jobPostingDetailSection[0].get('hiringTeamCard', {})
+                        if hiring_team_card:
+                            full_name = hiring_team_card.get('title', {}).get('text', None)
+                            bio = hiring_team_card.get('subtitle', {}).get('text', None)
+                            linkedin_url = hiring_team_card.get('navigationUrl')
+                            return (full_name, bio, linkedin_url)
                     
                     return (full_name, bio, linkedin_url)
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
-            time.sleep(delay)
+            time.sleep(random.randint(4,8))
     return None, None, None  # Return None if all attempts fail
 
 def split_and_clean_full_name(full_name):
@@ -131,7 +135,7 @@ def split_and_clean_full_name(full_name):
     last_name = name_parts[-1] if len(name_parts) > 1 else ''  # Check to avoid index error if name_parts is empty
     return (first_name, last_name)
 
-def extract_company_info(job_posting_id, max_retries=3, delay=1):
+def extract_company_info(job_posting_id, max_retries=3):
     api_request_url = f"https://www.linkedin.com/voyager/api/jobs/jobPostings/{job_posting_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65"
     payload = {}
     headers = {
@@ -170,10 +174,10 @@ def extract_company_info(job_posting_id, max_retries=3, delay=1):
                 return (job_posting_id, job_title, company_name, employee_count, company_url, company_industry, companyID)
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
-            time.sleep(delay)
+            time.sleep(random.randint(4,8))
     return None, None, None, None, None, None, None
 
-def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_retries=3, delay=1): 
+def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_retries=3): 
     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:{keywords},flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List({company_id})),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:40)&queryId=voyagerSearchDashClusters.fc9403b001bd0bf73f3e20f2d62390dd"
     payload = {}
     headers = {
@@ -234,7 +238,7 @@ def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_
                 return processed
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
-            time.sleep(delay)
+            time.sleep(random.randint(4,8))
     return []
 
 def hiring_person_or_not(job_posting_id, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company):
@@ -385,10 +389,11 @@ max_people_per_company = 3
 
 job_posting_ids = extract_all_job_posting_ids(keyword, batches)
 print(job_posting_ids)
-job_posting_id = job_posting_ids[1]
-print(job_posting_id)
-# full_name, bio, url = extract_full_name_bio_and_linkedin_url(job_posting_id)
-# print(full_name, bio, url)
+# job_posting_id = job_posting_ids[1]
+# print(job_posting_id)
+job_posting_id = "3849169123"
+full_name, bio, url = extract_full_name_bio_and_linkedin_url(job_posting_id)
+print(full_name, bio, url)
 # company_info = extract_company_info(job_posting_id)
 # print(company_info)
 # job_posting_id, job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
@@ -561,7 +566,7 @@ print(job_posting_id)
 #         print(f"Error fetching pr parsing company page: {e}")
 #     return None
 
-# def extract_company_segment(job_posting_id, max_retries=1, delay=1):
+# def extract_company_segment(job_posting_id, max_retries=1):
 #     encoded_job_posting_id = quote(job_posting_id)
 #     # api_request_url = f"https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed&variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{encoded_job_posting_id},includeSecondaryActionsV2:true)"
 #     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{encoded_job_posting_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed"
@@ -591,5 +596,5 @@ print(job_posting_id)
 #                         return company_segment
 #             except requests.exceptions.RequestException as e:
 #                 print(f"Request failed: {e}")
-#                 time.sleep(delay)    
+#                 time.sleep(random.randint(4,8))    
 #     return None      
