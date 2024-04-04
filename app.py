@@ -102,30 +102,33 @@ async def extract_full_name_bio_and_linkedin_url(job_posting_id, sem, session, m
     return None, None, None  # Return None if all attempts fail
 
 def split_and_clean_full_name(full_name):
-    cleaned_name = re.sub(r'[^\w\s]', '', full_name, flags=re.UNICODE)
+    # Remove parentheses and content within them
+    cleaned_name = re.sub(r'\(.*?\)', '', full_name)
+    # Further clean the name by removing any non-word and non-space characters
+    cleaned_name = re.sub(r'[^\w\s]', '', cleaned_name, flags=re.UNICODE)
     name_parts = cleaned_name.split()
     first_name = name_parts[0] # We assume the first part will always be the first name after removing emojis etc
     last_name = name_parts[-1] if len(name_parts) > 1 else ''  # Check to avoid index error if name_parts is empty
     return (first_name, last_name)
 
-async def fetch_and_parse_company_segment(company_url, session):
-    try:
-        # Fetch the company page content asynchronously. Add headers if necessary
-        async with session.get(company_url) as company_response:
-            if company_response.status == 200:
-                company_page_content = await company_response.text()
+# async def fetch_and_parse_company_segment(company_url, session):
+#     try:
+#         # Fetch the company page content asynchronously. Add headers if necessary
+#         async with session.get(company_url) as company_response:
+#             if company_response.status == 200:
+#                 company_page_content = await company_response.text()
 
-                # Parse the HTML content in a separate threat to avoid blocking
-                def parse_html(content):
-                    soup = BeautifulSoup(content, 'html.parser')
-                    segment_div = soup.find('div', attrs={'class':'org-top-card-summary-info-list__info-item'})
-                    return segment_div.text if segment_div else None
+#                 # Parse the HTML content in a separate threat to avoid blocking
+#                 def parse_html(content):
+#                     soup = BeautifulSoup(content, 'html.parser')
+#                     segment_div = soup.find('div', attrs={'class':'org-top-card-summary-info-list__info-item'})
+#                     return segment_div.text if segment_div else None
 
-                company_segment = await asyncio.to_thread(parse_html, company_page_content)
-                return company_segment
-    except Exception as e:
-        print(f"Error fetching pr parsing company page: {e}")
-    return None
+#                 company_segment = await asyncio.to_thread(parse_html, company_page_content)
+#                 return company_segment
+#     except Exception as e:
+#         print(f"Error fetching pr parsing company page: {e}")
+#     return None
 
 async def extract_company_info(job_posting_id, sem, session, max_retries=3, delay=1):
     api_request_url = f"https://www.linkedin.com/voyager/api/jobs/jobPostings/{job_posting_id}?decorationId=com.linkedin.voyager.deco.jobs.web.shared.WebFullJobPosting-65"
@@ -151,48 +154,48 @@ async def extract_company_info(job_posting_id, sem, session, max_retries=3, dela
                         companyID = companyID_search.group(1) if companyID_search else None
                         company_url = companyResolutionResult.get('url', None)
 
-                        company_segment = None
-                        if company_url:
-                            company_segment = await fetch_and_parse_company_segment(company_url, session)
+                        # company_segment = None
+                        # if company_url:
+                        #     company_segment = await fetch_and_parse_company_segment(company_url, session)
 
-                        return (job_posting_id, job_title, company_name, employee_count, company_url, company_segment, companyID)
+                        return (job_posting_id, job_title, company_name, employee_count, company_url, companyID)
             except Exception as e:
                 print(f"Request failed: {e}")
                 await asyncio.sleep(delay)
     return None, None, None, None, None, None, None
 
-async def extract_company_segment(job_posting_id, sem, session, max_retries=1, delay=1):
-    encoded_job_posting_id = quote(job_posting_id)
-    # api_request_url = f"https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed&variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{encoded_job_posting_id},includeSecondaryActionsV2:true)"
-    api_request_url = f"https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{encoded_job_posting_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed"
+# async def extract_company_segment(job_posting_id, sem, session, max_retries=1, delay=1):
+#     encoded_job_posting_id = quote(job_posting_id)
+#     # api_request_url = f"https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed&variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{encoded_job_posting_id},includeSecondaryActionsV2:true)"
+#     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(cardSectionTypes:List(COMPANY_CARD),jobPostingUrn:urn%3Ali%3Afsd_jobPosting%3A{encoded_job_posting_id},includeSecondaryActionsV2:true)&queryId=voyagerJobsDashJobPostingDetailSections.0a2eefbfd33e3ff566b3fbe31312c8ed"
 
-    payload = {}
-    headers = {
-    'accept': 'application/vnd.linkedin.normalized+json+2.1',
-    'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; liap=true; JSESSIONID="ajax:5371233139676576627"; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOtB0iaE0AQHehmeCXmo7JEQx3yzhQjkI1cvmPVd7EzPepRsZcwBgZaN9XMv4eSGcvul37iTmqpBD147YfRWhoW8-3x9ikT69bCEq_DRX8ACytmVxBtyl111Xf; lang=v=2&lang=en-us; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; li_mc=MTsyMTsxNzEyMTMyNjMyOzI7MDIxEOujgeP6A1uF93oEvaEg+fIAJjfK8Vs7qImxVpjeaz8=; UserMatchHistory=AQJVPgiTOiwfdAAAAY6jDr95_pWMNsUjTn69xHkgZEj9Ez4sQO2wBYEhmslKsa3P0suMzo-d_4QoDSYax4O0NGbzyTEKexrWpb777oYEKp9J2bBQGh6yd28i8G1arHkDC0DyqjHdCie9D8JPZoNBa4ms_n5HKpPfo460qqs0VMHmgoLtOUx-PveqG6D3BVOctHVOQ_MddhK8GdDit4JcAUCgsvje_7V02R0hMRGBxBwZsPrMfwj-O1U2EPGTmsRodndRn9jZ2INxkDl-vvw0p_abXhr7F5-XJ-L808to0dOlQqq10tHn1pOPmISnIFpd-QVmtbM; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lidc="b=OB74:s=O:r=O:a=O:p=O:g=4532:u=252:x=1:i=1712132637:t=1712136627:v=2:sig=AQFdII_5Lf9mKQxgOBkJHsM8_gwOxIoz"; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712737437%7C6%7CMCAAMB-1712737437%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712139837s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq1XHMHv0golcc9kyTlgPT0DQ7JBk5Weg1OFuj%252bBpbzR0yg1GKFeEO7FBR%252fAQh3%252fvoGMMS4yB67D9ec7jZcX51g1isL2VU7thmLU8lNVu23cEqSqzc23XEsnSvwUxxHx%252bzLkDNEGyOcJsJebOEcZWjWJvj90a49gGKwdqFTnBeghPmpl46CpkaXo%252b9ll0Y17aXNHqFPigu2LYSoW6N0pKT0M%253d; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzEyMTMyNDQ3OzI7MDIxDRXUR1kLsrM78f0RNi8WYGUzAhl1iMPau6k9YeWDtFY=; liap=true; JSESSIONID="ajax:5371233139676576627"; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOw2TMvE0AFsDybLtUTmv0FMxT50kAEGZ9VsWUe-PpCGDBaJfv3cu3EFB2F9WewOHhiJ99vjDLoxliKYuiiM5nt_Ivx92s6DJMCE-owqou0cPCGFDhyL_Rmu5_',
-    'csrf-token': 'ajax:5371233139676576627'
-    }
+#     payload = {}
+#     headers = {
+#     'accept': 'application/vnd.linkedin.normalized+json+2.1',
+#     'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; liap=true; JSESSIONID="ajax:5371233139676576627"; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOtB0iaE0AQHehmeCXmo7JEQx3yzhQjkI1cvmPVd7EzPepRsZcwBgZaN9XMv4eSGcvul37iTmqpBD147YfRWhoW8-3x9ikT69bCEq_DRX8ACytmVxBtyl111Xf; lang=v=2&lang=en-us; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; li_mc=MTsyMTsxNzEyMTMyNjMyOzI7MDIxEOujgeP6A1uF93oEvaEg+fIAJjfK8Vs7qImxVpjeaz8=; UserMatchHistory=AQJVPgiTOiwfdAAAAY6jDr95_pWMNsUjTn69xHkgZEj9Ez4sQO2wBYEhmslKsa3P0suMzo-d_4QoDSYax4O0NGbzyTEKexrWpb777oYEKp9J2bBQGh6yd28i8G1arHkDC0DyqjHdCie9D8JPZoNBa4ms_n5HKpPfo460qqs0VMHmgoLtOUx-PveqG6D3BVOctHVOQ_MddhK8GdDit4JcAUCgsvje_7V02R0hMRGBxBwZsPrMfwj-O1U2EPGTmsRodndRn9jZ2INxkDl-vvw0p_abXhr7F5-XJ-L808to0dOlQqq10tHn1pOPmISnIFpd-QVmtbM; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lidc="b=OB74:s=O:r=O:a=O:p=O:g=4532:u=252:x=1:i=1712132637:t=1712136627:v=2:sig=AQFdII_5Lf9mKQxgOBkJHsM8_gwOxIoz"; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712737437%7C6%7CMCAAMB-1712737437%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712139837s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvq1XHMHv0golcc9kyTlgPT0DQ7JBk5Weg1OFuj%252bBpbzR0yg1GKFeEO7FBR%252fAQh3%252fvoGMMS4yB67D9ec7jZcX51g1isL2VU7thmLU8lNVu23cEqSqzc23XEsnSvwUxxHx%252bzLkDNEGyOcJsJebOEcZWjWJvj90a49gGKwdqFTnBeghPmpl46CpkaXo%252b9ll0Y17aXNHqFPigu2LYSoW6N0pKT0M%253d; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTEzMDI5MjU7MjswMjEqcpbT05l8RjddPvbR76R/mVH9CGHsfxhK+QmNWHNGzA==; li_mc=MTsyMTsxNzEyMTMyNDQ3OzI7MDIxDRXUR1kLsrM78f0RNi8WYGUzAhl1iMPau6k9YeWDtFY=; liap=true; JSESSIONID="ajax:5371233139676576627"; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOw2TMvE0AFsDybLtUTmv0FMxT50kAEGZ9VsWUe-PpCGDBaJfv3cu3EFB2F9WewOHhiJ99vjDLoxliKYuiiM5nt_Ivx92s6DJMCE-owqou0cPCGFDhyL_Rmu5_',
+#     'csrf-token': 'ajax:5371233139676576627'
+#     }
 
-    async with sem:
-        for attempt in range(max_retries):
-            try:
-                async with session.get(api_request_url, headers=headers, data=payload) as response:
-                    # print("In the async session")
-                    # print(f"Headers: {headers}")
-                    # print(f"Response status: {response.status}")
-                    # response_text = await response.text()
-                    # print(f"Response text: {response_text}")
-                    if response.status == 200:
-                        data = await response.json()
-                        if data:
-                            company_segment = data.get('included', [{}])[1].get('name', None)
-                        print(f"Company segment: {company_segment}")
+#     async with sem:
+#         for attempt in range(max_retries):
+#             try:
+#                 async with session.get(api_request_url, headers=headers, data=payload) as response:
+#                     # print("In the async session")
+#                     # print(f"Headers: {headers}")
+#                     # print(f"Response status: {response.status}")
+#                     # response_text = await response.text()
+#                     # print(f"Response text: {response_text}")
+#                     if response.status == 200:
+#                         data = await response.json()
+#                         if data:
+#                             company_segment = data.get('included', [{}])[1].get('name', None)
+#                         print(f"Company segment: {company_segment}")
 
-                        return company_segment
-            except Exception as e:
-                print(f"Request failed: {e}")
-                await asyncio.sleep(delay)    
-    return None        
+#                         return company_segment
+#             except Exception as e:
+#                 print(f"Request failed: {e}")
+#                 await asyncio.sleep(delay)    
+#     return None        
 
 async def extract_non_hiring_person(keywords, company_id, company_name, sem, session, max_retries=3, delay=1):
     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:{keywords},flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List({company_id})),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:12)&queryId=voyagerSearchDashClusters.95b56a377280ee0fdf38866e2fa1abbb"
@@ -242,7 +245,7 @@ async def hiring_person_or_not(job_posting_id, employee_threshold, less_than_key
         hiring_team = "TRUE"
         return [(hiring_team, full_name, bio, linkedin_url)]
     else:
-        posting, job_title, company_name, employee_count, company_url, company_segment, companyID = await extract_company_info(job_posting_id, sem, session)
+        posting, job_title, company_name, employee_count, company_url, companyID = await extract_company_info(job_posting_id, sem, session)
 
         if employee_count is not None:
             company_keywords = less_than_keywords if employee_count <= employee_threshold else more_than_keywords
@@ -352,52 +355,62 @@ def generate_excel(dataframe, result_name):
 #             st.error('Please enter a valid LinkedIn URL.')
 
 linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
-results_name = "linkedin_jobs_sem_seo.csv"
+results_name = "linkedin_jobs_sem_seo_no_segment.csv"
 
 start_time = time.time()
 print("Running...")
 keyword_search = re.search(r'keywords=([^&]+)', linkedin_job_url)
 keyword = keyword_search.group(1) if keyword_search else None
 print(f"Keyword: {keyword}")
-total_number_of_results = 5
+total_number_of_results = 50
 print(f"Total: {total_number_of_results}")
 batches = split_total_into_batches_of_100(total_number_of_results)
 print(f"Batches: {batches}")
 employee_threshold = 100
-less_than_keywords = "ceo, vd, founder"
-more_than_keywords = "cmo, head of marketing, marknadschef"
+under_threshold_keywords = "CEO, VD, Founder"
+over_threshold_keywords = "CMO, Chief of Marketing, Head of Marketing, Marknadschef, Marketing Director, Director Marketing, Vice President Marketing"
+under_threshold_list = under_threshold_keywords.lower().split(", ")
+over_threshold_list = over_threshold_keywords.lower().split(", ")
 
-grouped_results = asyncio.run(main(keyword, batches, employee_threshold, less_than_keywords, more_than_keywords))
-end_time = time.time()
-print(f"Done! Scraped info from {total_number_of_results} job ads in {end_time - start_time} seconds")
-print(grouped_results)
+linkedin_bio = "Consultant and expert in customer relations, business development and sales"
+long_bio = "MBA, masters in Business Administration at SLU Studied International Business Management and Economics at Mälardalen University works at Aredu AB"
 
-results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Företagssegment':[], 'Företags-URL':[]}
+is_present = any(title in linkedin_bio.lower() for title in under_threshold_list)
+print(is_present)
 
-for result in grouped_results:
-    job_posting_id, job_title, company_name, employee_count, company_url, company_segment, company_id = result[0]
-    # company_segment = result[1]
-    for person in result[1]:
-        hiring_team, full_name, bio, linkedin_url = person
-        first_name, last_name = split_and_clean_full_name(full_name)
 
-        results['Hiring Team'].append(hiring_team)
-        results['Förnamn'].append(first_name)
-        results['Efternamn'].append(last_name)
-        results['Bio'].append(bio)
-        results['LinkedIn URL'].append(linkedin_url)
-        results['Jobbtitel som sökes'].append(job_title)
-        results['Jobbannons-URL'].append(f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden")
-        results['Företag'].append(company_name)
-        results['Antal anställda'].append(employee_count)
-        results['Företagssegment'].append(company_segment)
-        results['Företags-URL'].append(company_url)
 
-linkedin_jobs_df = pd.DataFrame.from_dict(results)
-linkedin_jobs_df.to_csv(results_name, index=False)
+# grouped_results = asyncio.run(main(keyword, batches, employee_threshold, less_than_keywords, more_than_keywords))
+# end_time = time.time()
+# print(f"Done! Scraped info from {total_number_of_results} job ads in {end_time - start_time} seconds")
+# print(grouped_results)
 
-with open ("times.txt", "a") as f:
-    f.write(f"Total: {total_number_of_results}, Time: {end_time - start_time}\n")
+# results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Företags-URL':[]}
+
+# for result in grouped_results:
+#     job_posting_id, job_title, company_name, employee_count, company_url, company_id = result[0]
+#     # company_segment = result[1]
+#     for person in result[1]:
+#         hiring_team, full_name, bio, linkedin_url = person
+#         first_name, last_name = split_and_clean_full_name(full_name)
+
+#         results['Hiring Team'].append(hiring_team)
+#         results['Förnamn'].append(first_name)
+#         results['Efternamn'].append(last_name)
+#         results['Bio'].append(bio)
+#         results['LinkedIn URL'].append(linkedin_url)
+#         results['Jobbtitel som sökes'].append(job_title)
+#         results['Jobbannons-URL'].append(f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden")
+#         results['Företag'].append(company_name)
+#         results['Antal anställda'].append(employee_count)
+#         # results['Företagssegment'].append(company_segment)
+#         results['Företags-URL'].append(company_url)
+
+# linkedin_jobs_df = pd.DataFrame.from_dict(results)
+# linkedin_jobs_df.to_csv(results_name, index=False)
+
+# with open ("times.txt", "a") as f:
+#     f.write(f"Total: {total_number_of_results}, Time: {end_time - start_time}\n")
 
 # for batch in batches:
 #     start, stop = batch
