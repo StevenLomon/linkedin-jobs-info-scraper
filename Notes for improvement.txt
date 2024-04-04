@@ -25,3 +25,7 @@ part of the code, I need to make sure that if the results tuple with employee in
 insert it into the dataframe
 
 I really don't see how Hiring Team could crash. I just need to make sure it works. Let's get to it!
+
+This is truly fucking weird. If a company is of a certain size, their api_request_url will include additional parameters
+outside of the company id that is separate for each company. I am not bothering with these, so let's just pray that
+they have a hiring team like SAAB! And if they don't, they're probably not interested anyway
