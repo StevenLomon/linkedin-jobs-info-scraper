@@ -259,6 +259,7 @@ def main(keyword, batches, employee_threshold, under_threshold_keywords, over_th
         job_posting = future_to_job[future]
         try:
             data = future.result()
+            print(f"Data: {data}")
             if job_posting not in results:
                 results[job_posting] = [data]
             else:
@@ -275,8 +276,11 @@ def main(keyword, batches, employee_threshold, under_threshold_keywords, over_th
 
 def turn_grouped_results_into_df(grouped_results):
     results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Företagsindustri':[], 'Företags-URL':[]}
+    print(f"Length grouped results: {len(grouped_results)}")
 
     for result in grouped_results:
+        print(f"Result: {result}")
+        time.sleep(3)
         if len(result[0]) == 7:
             job_posting_id, job_title, company_name, employee_count, company_url, company_industry, company_id = result[0]
             people = result[1]
@@ -381,6 +385,7 @@ if st.button('Generate File'):
             end_time = time.time()
 
             print("Done!")
+            print(f"Results: {results}")
             st.text(f"Done! Scraped {total_number_of_results} products in {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minutes")
             scraped_data_df = turn_grouped_results_into_df(results)
             # st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
