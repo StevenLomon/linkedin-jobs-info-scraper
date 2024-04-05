@@ -159,11 +159,11 @@ def extract_company_info(job_posting_id, max_retries=3):
                 industries = companyResolutionResult.get('industries', [])
                 company_industry = industries[0] if industries else None
 
-                return (job_posting_id, job_title, company_name, employee_count, company_url, company_industry, companyID)
+                return (job_title, company_name, employee_count, company_url, company_industry, companyID)
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
             time.sleep(random.randint(3,5))
-    return None, None, None, None, None, None, None
+    return None, None, None, None, None, None
 
 def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_retries=1): 
     keywords_list = keywords.lower().split(", ")
@@ -228,7 +228,7 @@ def hiring_person_or_not(job_posting_id, employee_threshold, under_threshold_key
         hiring_team = "TRUE"
         return [(hiring_team, full_name, bio, linkedin_url)]
     else:
-        posting, job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
+        job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
 
         if employee_count:
             company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords    
@@ -239,56 +239,54 @@ def hiring_person_or_not(job_posting_id, employee_threshold, under_threshold_key
 
 def main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, max_workers=5):
     all_job_posting_ids = extract_all_job_posting_ids(keyword, batches)
-
     grouped_results = []
 
     # Using ThreadPoolExecutor to manage a pool of threads
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Dictionary to keep track of futures and job postings
-        future_to_job = {
+        future_to_company = {
             executor.submit(extract_company_info, job_posting): job_posting for job_posting in all_job_posting_ids
         }
-        future_to_job.update({
+        future_to_employee = {
             executor.submit(hiring_person_or_not, job_posting, employee_threshold, under_threshold_keywords, 
                             over_threshold_keywords, max_people_per_company): job_posting for job_posting in all_job_posting_ids
-        })
+        }
 
-    results = {}
+    results = {job_posting: [None, None] for job_posting in all_job_posting_ids}  # Pre-initialize results dict with placeholders
+    
     #Iterating over completed tasks as they complete
-    for future in as_completed(future_to_job):
-        job_posting = future_to_job[future]
+    for future in as_completed(future_to_company | future_to_employee):
+        job_posting = future_to_company.get(future) or future_to_employee.get(future)
         try:
             data = future.result()
             print(f"Data: {data}")
-            if job_posting not in results:
-                results[job_posting] = [data]
+            if future in future_to_company:
+                results[job_posting][0] = data
             else:
-                results[job_posting].append(data)
+                results[job_posting][1] = data
         except Exception as e:
             print(f"Job posting {job_posting} generated an exception: {e}")
 
     # Organizing the results
-    for job_posting, data in results.items():
-        if len(data) == 2: # Each result tuple will contain company info and employee info
-            grouped_results.append(tuple(data))
+    for job_posting, data_pair in results.items():
+        if None not in data_pair:  # Ensure both company and employee info are present
+            grouped_results.append((job_posting, tuple(data_pair)))
     
     return grouped_results
 
 def turn_grouped_results_into_df(grouped_results):
     results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Företagsindustri':[], 'Företags-URL':[]}
-    print(f"Length grouped results: {len(grouped_results)}")
 
     for result in grouped_results:
-        print(f"Result: {result}")
-        time.sleep(3)
-        if len(result[0]) == 7:
-            job_posting_id, job_title, company_name, employee_count, company_url, company_industry, company_id = result[0]
-            people = result[1]
+        job_posting_id = result[0]
+        if isinstance(result[1][1], list): # Employee data will always be a list
+            company_data, employee_data = result[1]
         else:
-            job_posting_id, job_title, company_name, employee_count, company_url, company_industry, company_id = result[1]
-            people = result[0]
+            employee_data, company_data = result[1]
 
-        for person in people:
+        job_title, company_name, employee_count, company_url, company_industry, company_id = company_data
+
+        for person in employee_data:
             hiring_team, full_name, bio, linkedin_url = person
         
             results['Hiring Team'].append(hiring_team)
@@ -385,7 +383,6 @@ if st.button('Generate File'):
             end_time = time.time()
 
             print("Done!")
-            print(f"Results: {results}")
             st.text(f"Done! Scraped {total_number_of_results} products in {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minutes")
             scraped_data_df = turn_grouped_results_into_df(results)
             # st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
