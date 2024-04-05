@@ -45,9 +45,7 @@ def split_total_into_batches_of_100(total):
 
 def fetch_job_posting_ids(keyword, batch, max_retries=3):
     start, stop = batch
-    print(f"Start: {start}, Stop: {stop}")
     batch_size = stop - start
-    print(f"Batch size: {batch_size}")
 
     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-67&count={batch_size}&q=jobSearch&query=(origin:SWITCH_SEARCH_VERTICAL,keywords:{keyword},spellCorrectionEnabled:true)&start={start}"
     headers = {
@@ -57,13 +55,13 @@ def fetch_job_posting_ids(keyword, batch, max_retries=3):
         'sec-fetch-mode': 'cors'
         }
 
+    job_posting_ids_list = []
     for attempt in range(max_retries):
         try:
             response = requests.request("GET", api_request_url, headers=headers)
             if response.status_code == 200:
                 data = response.json()
 
-                job_posting_ids_list = []
                 # Navigate to jobCardPrefetchQueries and get the first item's prefetchJobPostingCardUrns
                 prefetch_job_posting_card_urns = data.get('data', {}) \
                                                     .get('metadata', {}) \
@@ -168,24 +166,27 @@ def extract_company_info(job_posting_id, max_retries=3):
     return None, None, None, None, None, None, None
 
 def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_retries=1): 
-    api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:{keywords},flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List({company_id})),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:12)&queryId=voyagerSearchDashClusters.aacf309cb55f24005e058d2cf30a95ad"
-    headers = {
-    'csrf-token': 'ajax:2715582253737539260',
-    'Cookie': 'AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19819%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712897716%7C6%7CMCAAMB-1712897716%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712300116s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; UserMatchHistory=AQIyyG483-AyRQAAAY6snGlqbYZaWcLaLKz3_4RvwTcWNrbhAoXxlx6a7Lao2LNO4wFPodake-rWR7cY3QPSajrnGsONagtY2zX3YKArR77E2OSNLxUv11Kft2vD_v8VxKxXGp1uIJ8Fyw6WStYifUHp1G31SQs5Kwg0je8oACaKFOnfBnhYNhKXAt9gzIGYzYJ8l-5GBLqOO8xWuch8c567rYxTIAfHgsVXwtdugJ920H2wi8XvZGaU82T3WnaQG0b0LnwPj4vkYGIFaHwWRJSrBvn0r44D3Wn14pJ5KZaYwLUe5QfUTAjgITReIRoDd4sOGjU; __cf_bm=0mGm.ta8zQI_VeqZVf_twS.5eIB7DkbespqLbZ2RZ00-1712292913-1.0.1.1-X7Z7qtSv0hIhZmVq0O_8Y6IbHv18_kCObU6uorqdrI679tNNHE.grYcRAdeYESw9OdQxB_5c3.g8gCB8zAa6Wg; _gcl_au=1.1.308589430.1710419664; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; aam_uuid=16424388958969701103162659259461292262; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; lang=v=2&lang=en-us; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; li_mc=MTsyMTsxNzEyMjkyOTEzOzI7MDIx9BjGtRnSnzpArFIVFDpKPGlBvMmvIqBkH0KXq1LeRw0=; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; liap=true; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4204:u=253:x=1:i=1712292917:t=1712379313:v=2:sig=AQFPTFogKL0fCK-flXCrC0J-sYVmFOww"; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; visit=v=1&M; JSESSIONID="ajax:2715582253737539260"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm',
-    }
-
     keywords_list = keywords.lower().split(", ")
+    url_formatted_keywords = keywords.strip().replace(', ', '%20OR%20').replace(' ', '%20')
+    
+    api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:{url_formatted_keywords},flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List({company_id})),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:12)&queryId=voyagerSearchDashClusters.aacf309cb55f24005e058d2cf30a95ad"
+    headers = {
+    'accept': 'application/vnd.linkedin.normalized+json+2.1',
+    'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lang=v=2&lang=en-us; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; liap=true; JSESSIONID="ajax:2715582253737539260"; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqyIS3EHNCaQb1yqedO0SnYQMhwbJN8ySTkCer5wo%252boj3R6Kjve%252b4U7H4WVzqtUgXP7YM6GRQ85K3mDGXrbXg4ZNAFi8w%252bd5zuD%252bFIZ37zTZrbmHBabFntMHiqadB2DZiIaiWEgi%252fl1%252f%252fl1OFnBVL7ugO%252bj6bBBXxf2utkvg%252f%252fWY17NNVTXALlWyLCFcF9%252f%252fzFWz1bRB4FQl%252bLi2QIrLZ704%253d; li_mc=MTsyMTsxNzEyMzI2NTUxOzI7MDIxftb6aAVYVH8gDfsXaIlY3yeEj2uLVVHmOTq0a9yzQuA=; __cf_bm=MMMJZ77oY71_nUapoBIXf53UsEJngGvFl8HAcWNdXdo-1712326552-1.0.1.1-c3FwEI2LnDeCVPYN5aHWT.6roD15mx72mX_UDcXebBQKEiof3DkT_mxqF9tTZd2Gf53MFfnzBo6qYs6TzJhimg; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19819%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712931354%7C6%7CMCAAMB-1712931354%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712333754s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; UserMatchHistory=AQIdxcAxC5cMuAAAAY6unqyHEzSFed0QmxyjHcYParVnDqvlBeBYOGzNn0wTj7EPMPwsdad0g63r8sUggTv0RYtoHjEbBQM1BddULbdJZMqB0jgeATGwUSvpHDz2HbNnUeMXt_-AG34fekU0NKkR-QB6GSIWrxgp7OwxMNNmOTdFO1LAN8eGCJjSsVdlZld1kxYvPkgRrwgldSmrmxaNIYf4HmzDvSNAn81fFZjjbM282dCx-Eq1yuTrlstYQ-lJLpXWL3m_JNJmVNrN7tZGUUNnX8rWhqK2c2XqZIJQfgzopJ59VhuaYrXvYm7YoyKLm5N4ljg; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4206:u=253:x=1:i=1712326620:t=1712391543:v=2:sig=AQGUjv2njj0nMPTaqNmrFV0FtUrlqPGL"; bcookie="v=2&70aaf49d-ed55-4b5c-8362-d0eba01b2555"; li_gc=MTswOzE3MTIzMjQ1NDQ7MjswMjH7F5RtGOB+6km5SD86xeRCXtAv1pzxFaZgc9eOZ6nlGQ==; li_mc=MTsyMTsxNzEyMzEwNjM4OzI7MDIxtt/UHTCJyTLYmxgG2aQ96q5IGk7uCVBxDqWoZ+zeaDs=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4206:u=253:x=1:i=1712326742:t=1712391543:v=2:sig=AQEGOhcsViLtSujkKRWPUgMfRKtbxSEg"',
+    'csrf-token': 'ajax:2715582253737539260',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-site': 'same-origin',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+    }
 
     for attempt in range(max_retries):
         try:
-            time.sleep(random.randint(3,5))
+            time.sleep(random.randint(1,3))
             response = requests.request("GET", api_request_url, headers=headers)
             if response.status_code == 200:
-                print("RESPONSE 200")
                 data = response.json()
-                print(f"Data: {data}")
+                # print(f"Data: {data}")
                 included = data.get('included', [{}])
-                print(f"Included: {included}")
 
                 # Filter out any items in 'included' that don't represent a person based on a minimum number of keys
                 filtered_people = [person for person in included if len(person) >= 5]
@@ -193,7 +194,6 @@ def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_
                 
                 processed = []
                 for person in filtered_people:
-                    print(type(person))
                     if  len(processed) >= max_people_per_company:
                         break # Exit the loop once we have enough people
 
@@ -221,26 +221,23 @@ def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_
             time.sleep(random.randint(3,5))
     return []
 
-def hiring_person_or_not(job_posting_id, employee_threshold, under_threshold_keywords, over_threshold_keywords):
+def hiring_person_or_not(job_posting_id, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company):
     full_name = bio = linkedin_url = None
     full_name, bio, linkedin_url = extract_full_name_bio_and_linkedin_url(job_posting_id)
     if full_name and bio and linkedin_url:
         hiring_team = "TRUE"
-        return (hiring_team, full_name, bio, linkedin_url)
+        return [(hiring_team, full_name, bio, linkedin_url)]
     else:
-        hiring_team = "FALSE"
-        return (hiring_team, None, None, None)
-        # posting, job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
+        posting, job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
 
-        # if employee_count is not None:
-        #     company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords
-        #     url_formatted_keywords = company_keywords.replace(', ', '%20OR%20').strip()        
-        #     company_people = extract_non_hiring_person(companyID, url_formatted_keywords, max_people_per_company)
-        #     return company_people
-        # else:
-        #     return []
+        if employee_count:
+            company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords    
+            company_people = extract_non_hiring_person(companyID, company_keywords, max_people_per_company)
+            return company_people
+        else:
+            return []
 
-def main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_workers=5):
+def main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, max_workers=5):
     all_job_posting_ids = extract_all_job_posting_ids(keyword, batches)
 
     grouped_results = []
@@ -253,7 +250,7 @@ def main(keyword, batches, employee_threshold, under_threshold_keywords, over_th
         }
         future_to_job.update({
             executor.submit(hiring_person_or_not, job_posting, employee_threshold, under_threshold_keywords, 
-                            over_threshold_keywords): job_posting for job_posting in all_job_posting_ids
+                            over_threshold_keywords, max_people_per_company): job_posting for job_posting in all_job_posting_ids
         })
 
     results = {}
@@ -282,35 +279,38 @@ def turn_grouped_results_into_df(grouped_results):
     for result in grouped_results:
         if len(result[0]) == 7:
             job_posting_id, job_title, company_name, employee_count, company_url, company_industry, company_id = result[0]
-            hiring_team, full_name, bio, linkedin_url = result[1]
+            people = result[1]
         else:
             job_posting_id, job_title, company_name, employee_count, company_url, company_industry, company_id = result[1]
-            hiring_team, full_name, bio, linkedin_url = result[0]
-        
-        results['Hiring Team'].append(hiring_team)
+            people = result[0]
 
-        if full_name:
-            first_name, last_name = split_and_clean_full_name(full_name)
-            results['Förnamn'].append(first_name)
-            results['Efternamn'].append(last_name)
-        else:
-            results['Efternamn'].append(None)
-            if employee_count:
-                company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords
-                url_formatted_keywords = company_keywords.strip().replace(', ', '%20OR%20').replace(' ', '%20')
-                construced_url = f"{company_url}/people/?keywords={url_formatted_keywords}"
-                results['Förnamn'].append(construced_url)
-            else:
-                results['Förnamn'].append(None)
+        for person in people:
+            hiring_team, full_name, bio, linkedin_url = person
         
-        results['Bio'].append(bio)
-        results['LinkedIn URL'].append(linkedin_url)
-        results['Jobbtitel som sökes'].append(job_title)
-        results['Jobbannons-URL'].append(f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden")
-        results['Företag'].append(company_name)
-        results['Antal anställda'].append(employee_count)
-        results['Företagsindustri'].append(company_industry)
-        results['Företags-URL'].append(company_url)
+            results['Hiring Team'].append(hiring_team)
+
+            if full_name:
+                first_name, last_name = split_and_clean_full_name(full_name)
+                results['Förnamn'].append(first_name)
+                results['Efternamn'].append(last_name)
+            else:
+                results['Efternamn'].append(None)
+                if employee_count:
+                    company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords
+                    url_formatted_keywords = company_keywords.strip().replace(', ', '%20OR%20').replace(' ', '%20')
+                    construced_url = f"{company_url}/people/?keywords={url_formatted_keywords}"
+                    results['Förnamn'].append(construced_url)
+                else:
+                    results['Förnamn'].append(None)
+            
+            results['Bio'].append(bio)
+            results['LinkedIn URL'].append(linkedin_url)
+            results['Jobbtitel som sökes'].append(job_title)
+            results['Jobbannons-URL'].append(f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden")
+            results['Företag'].append(company_name)
+            results['Antal anställda'].append(employee_count)
+            results['Företagsindustri'].append(company_industry)
+            results['Företags-URL'].append(company_url)
 
     linkedin_jobs_df = pd.DataFrame.from_dict(results)
     return linkedin_jobs_df
@@ -334,6 +334,10 @@ def generate_excel(dataframe, result_name):
     output.seek(0)
     return output
 
+def convert_seconds_to_minutes_and_seconds(seconds):
+    min, sec = divmod(seconds, 60)
+    return '%02d:%02d' % (min, sec)
+
 ## STREAMLIT CODE
 st.title('LinkedIn Job search URL to CSV Generator V2')
 st.markdown('Working on having people extracting from the company People page working 🛠️')
@@ -347,7 +351,7 @@ st.write("If there is no Hiring Team available and the company has less than or 
 employee_threshold = st.number_input("Employee Threshold", min_value=1, value=100, step=1, format="%d", label_visibility="collapsed")
 under_threshold_keywords = st.text_input('employees, search the company for (separate keywords with comma):', '')
 over_threshold_keywords = st.text_input('If it has more, search the company for: (separate keywords with comma)', '')
-# max_people_per_company = st.text_input('Max amount of people to scrape per company if no Hiring Team:', '')
+max_people_per_company = st.text_input('Max amount of people to scrape per company if no Hiring Team:', '')
 
 # Radio button to choose the file format
 file_format = st.radio("Choose the file format for download:", ('csv', 'xlsx'))
@@ -367,16 +371,17 @@ if st.button('Generate File'):
             if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
                 total_number_of_results = int(max_results_to_check)
             print(f"Attempting to scrape info from {total_number_of_results} job ads")
-            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads")
+            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads. It takes approximately just under 1 second per job ad but it scales and gets faster the more requests!")
+            st.markdown(f"Meaning this will take around {convert_seconds_to_minutes_and_seconds(total_number_of_results)} minutes but potentially faster")
 
             batches = split_total_into_batches_of_100(total_number_of_results)
             print(f"Splitting {total_number_of_results} in batches: {batches}")
 
-            results = main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords)
+            results = main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company)
             end_time = time.time()
 
             print("Done!")
-            st.text(f"Done! Scraped {total_number_of_results} products in {end_time - start_time} seconds")
+            st.text(f"Done! Scraped {total_number_of_results} products in {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minutes")
             scraped_data_df = turn_grouped_results_into_df(results)
             # st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
 
@@ -576,52 +581,50 @@ if st.button('Generate File'):
 #     results['Företagsindustri'].append(company_industry)
 #     results['Företags-URL'].append(company_url)
 
-linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
-# linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3860933366&geoId=105117694&keywords=frontend%20developer&location=Sweden&origin=JOB_SEARCH_PAGE_KEYWORD_AUTOCOMPLETE&refresh=true"
-results_name = "linkedin_jobs_sem_seo_fully_working_temp.csv"
+# linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
+# # linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3860933366&geoId=105117694&keywords=frontend%20developer&location=Sweden&origin=JOB_SEARCH_PAGE_KEYWORD_AUTOCOMPLETE&refresh=true"
+# results_name = "linkedin_jobs_sem_seo_fully_working_temp.csv"
 
-start_time = time.time()
-print("Running...")
-keyword_search = re.search(r'keywords=([^&]+)', linkedin_job_url)
-keyword = keyword_search.group(1) if keyword_search else None
-print(f"Keyword: {keyword}")
-total_number_of_results = 59
-print(f"Total: {total_number_of_results}")
-batches = split_total_into_batches_of_100(total_number_of_results)
-print(f"Batches: {batches}")
-employee_threshold = 100
-under_threshold_keywords = "CEO, VD, Founder"
-over_threshold_keywords = "CMO, Chief of Marketing, Head of Marketing, Marknadschef, Marketing Director, Director Marketing, Vice President Marketing"
-max_people_per_company = 2
+# start_time = time.time()
+# print("Running...")
+# keyword_search = re.search(r'keywords=([^&]+)', linkedin_job_url)
+# keyword = keyword_search.group(1) if keyword_search else None
+# print(f"Keyword: {keyword}")
+# total_number_of_results = get_total_number_of_results(keyword)
+# print(f"Total: {total_number_of_results}")
+# batches = split_total_into_batches_of_100(total_number_of_results)
+# print(f"Batches: {batches}")
+# employee_threshold = 100
+# under_threshold_keywords = "CEO, VD, Founder"
+# over_threshold_keywords = "CMO, Head of Marketing, Marknadschef"
+# max_people_per_company = 2
 
-grouped_results = main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company)
-end_time = time.time()
-# print(grouped_results)
-print(len(grouped_results))
-print(f"Done! Scraped info from {total_number_of_results} job ads in {end_time - start_time} seconds")
+# grouped_results = main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company)
+# end_time = time.time()
+# # print(grouped_results)
+# print(len(grouped_results))
+# print(f"Done! Scraped info from {total_number_of_results} job ads in {end_time - start_time} seconds")
 
-df = turn_grouped_results_into_df(grouped_results)
-df.to_csv(results_name, index=False)
+# df = turn_grouped_results_into_df(grouped_results)
+# df.to_csv(results_name, index=False)
 
-with open ("times.txt", "a") as f:
-    f.write(f"Total: {total_number_of_results}, Time: {end_time - start_time}\n")
+# with open ("times.txt", "a") as f:
+#     f.write(f"Total: {total_number_of_results}, Time: {end_time - start_time}\n")
 
 # construced_url = f"{company_url}/people/?keywords={url_formatted_keywords}"
 # print(construced_url)
-job_posting_ids = extract_all_job_posting_ids(keyword, batches)
-# print(job_posting_ids)
-job_posting_id = job_posting_ids[16]
-# job_posting_id = "3863470230"
-print(job_posting_id)
-hiring_team_person = extract_full_name_bio_and_linkedin_url(job_posting_id)
-print(hiring_team_person)
-# # full_name, bio, url = hiring_team_person
-company_info = extract_company_info(job_posting_id)
-print(company_info)
-job_posting_id, job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
-company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords
-print(company_keywords)
-url_formatted_keywords = company_keywords.strip().replace(', ', '%20OR%20').replace(' ', '%20')
-print(url_formatted_keywords)
-company_people = extract_non_hiring_person(companyID, url_formatted_keywords, max_people_per_company)
-print(company_people)
+# job_posting_ids = extract_all_job_posting_ids(keyword, batches)
+# # print(job_posting_ids)
+# # job_posting_id = job_posting_ids[27]
+# job_posting_id = "3852139384"
+# print(job_posting_id)
+# hiring_team_person = extract_full_name_bio_and_linkedin_url(job_posting_id)
+# print(hiring_team_person)
+# # # full_name, bio, url = hiring_team_person
+# # company_info = extract_company_info(job_posting_id)
+# # print(company_info)
+# job_posting_id, job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
+# company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords
+# print(company_keywords)
+# company_people = extract_non_hiring_person(companyID, company_keywords, max_people_per_company)
+# print(company_people)
