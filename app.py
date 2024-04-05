@@ -9,25 +9,29 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def get_total_number_of_results(keyword, max_retries=3):
     api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-63&count=100&q=jobSearch&query=(origin:HISTORY,keywords:{keyword},locationUnion:(geoId:105117694),selectedFilters:(distance:List(25.0)),spellCorrectionEnabled:true)&servedEventEnabled=false&start=0"
+    api_request_url = f"https://www.linkedin.com/voyager/api/voyagerJobsDashJobCards?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-67&count=25&q=jobSearch&query=(origin:SWITCH_SEARCH_VERTICAL,keywords:{keyword},spellCorrectionEnabled:true)&start=0"    
         
     payload = {}
     headers = {
-    'csrf-token': 'ajax:5371233139676576627',
-    'Cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_mc=MTsyMTsxNzExMjc2MTc0OzI7MDIxe9WcWZ2d6Bt7L96zCLaBjXpfuxnqB2ora17i0MVkktc=; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4154:u=247:x=1:i=1711257936:t=1711297019:v=2:sig=AQEI3UFEfjQrzprvxRtR2ODZ2EXxFVpB"; sdsc=22%3A1%2C1711273501254%7EJAPP%2C08tO5%2Fcka%2F8fklcFLQeSLJeOemic%3D; JSESSIONID="ajax:5371233139676576627"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YFmyS7AAABjmrnuugAAAGOjvQ-6E0AY1fC-ANVhrSwjiNiqIhKYZ1Xib5nml6YE96LyvaMY3LATaVjueFFrqG8UXQNJz_kxu4qPIr20m8fm4URdNFCas5wngLRy2k8BJPw8UGUqCaqXKD7; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm'
+        'accept': 'application/vnd.linkedin.normalized+json+2.1',
+        'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712823944%7C6%7CMCAAMB-1712823944%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712226344s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; li_g_recent_logout=v=1&true; lang=v=2&lang=en-us; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; liap=true; JSESSIONID="ajax:2715582253737539260"; li_mc=MTsyMTsxNzEyMjI0NzMyOzI7MDIxzODtaxUnhH03NiFJxX2nAcg+Zt1SBwH5NvsRAxtAtmk=; UserMatchHistory=AQKpLFT71zoM5QAAAY6olBvzmoHGZBhPQlhG2QJfDL6VSRwwrqxGU5OYng_P7oC3i705LjK1mJLCoudXGg-J0NDW4inNM4LtM90f1IHjAKPkiKBQOsqx7x89ZsAUgQ_Id-tKl50XVNuPZnAfsIVhngEuxkV6538FxYjln7OKcc94E830eKTIGCzm9sUFevFdtaLpUziPshqg7A5qPAlpsBx_ltoEvRBdb6eZSTz-zYDAogKN9htKasaYbT-8BPcjbuJVhvAmT24k4rFh07c3Zx78yU0PaPxnN68ue8yS7BangTpKgFAr9JustG_rujNj9mHuB9A; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4190:u=253:x=1:i=1712225263:t=1712308566:v=2:sig=AQGNtWMcukq66YUQAxEHE2Y2woh1guTQ"; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712823944%7C6%7CMCAAMB-1712823944%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712226344s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; UserMatchHistory=AQKz6POJSiLt1AAAAY6okULilyFDXuLLHMAMYVzy-IMAs6Dlwno_fksOjnrsAnsZpD2MUiiNSG9oGzLrbQNa4N5CTJqA0FOGwUAH3-vZ9blAScHMZjWEElHwe_wJf4WbR02jFr8oZXirGt2T5fmAiHm_27xgkRrk0ivUr11nWHvdhh6l_QpEkhkJhkL1gItuDoH1ok95GHg4SC0rIoD7Txfw0C_QUZnpE8oMvyyScBkPIIwEBHuDwDKIW9Bd8LPkVpLt-FRLcxHxceXm1RjE12H6A3hq8Hmugcmg5htGzvIiW-lBiKnLsYGUSPowBkKdDtoFxVk; __cf_bm=46m5tvraQgrQpHhlW.Lwh9JA1WKE1fNfwR6JoACj1tc-1712225398-1.0.1.1-nXNAZAkaZHgAm2sBxkPt_tsSjFNf8oliPxZqefYXuc9oq6O6Lbwhyr7mIKovqCN1.OeYtBp7PvBct4AgSGNnUw; _gcl_au=1.1.308589430.1710419664; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; aam_uuid=16424388958969701103162659259461292262; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; lang=v=2&lang=en-us; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; li_mc=MTsyMTsxNzEyMjI1NDc1OzI7MDIx4g1UjJLNxrgq1LN73193ANa7nJGrX7QYtI3diLCYb2I=; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; liap=true; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4190:u=253:x=1:i=1712225077:t=1712308566:v=2:sig=AQFhNZWPI_v5oL4y8oX9xLFL8a3cbxtv"; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; test=cookie; visit=v=1&M; JSESSIONID="ajax:2715582253737539260"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm',
+        'csrf-token': 'ajax:2715582253737539260',
+        'sec-fetch-mode': 'cors'
     }
 
     for attempt in range(max_retries):
         try:
             response = requests.request("GET", api_request_url, headers=headers, data=payload)
-            if response.status_code_code == 200:
+            if response.status_code == 200:
+                data = response.json()
                 total = None
-                paging = response.json().get('paging', {})
+                paging = data.get('data', {}).get('paging', {})
                 if paging:
                     total = paging.get('total')
                 
                 if isinstance(total, int):
                     return total
-        except requests.requests.exceptions.RequestExceptions.Requestrequests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
             time.sleep(random.randint(3,5))
     return None     
@@ -79,7 +83,7 @@ def fetch_job_posting_ids(keyword, batch, max_retries=3):
 
 def extract_all_job_posting_ids(keyword, batches):
     job_posting_ids = []
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=8) as executor:
         futures = [executor.submit(fetch_job_posting_ids, keyword, batch) for batch in batches]
         for future in as_completed(futures):
             job_posting_ids.extend(future.result())
@@ -93,6 +97,8 @@ def extract_full_name_bio_and_linkedin_url(job_posting_id, max_retries=3):
     'csrf-token': 'ajax:2715582253737539260',
     'sec-fetch-mode': 'cors'
     }
+
+    full_name = bio = linkedin_url = None
 
     for attempt in range(max_retries):
         try:
@@ -162,78 +168,81 @@ def extract_company_info(job_posting_id, max_retries=3):
             time.sleep(random.randint(3,5))
     return None, None, None, None, None, None, None
 
-def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_retries=3): 
-    api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:{keywords},flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List({company_id})),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:40)&queryId=voyagerSearchDashClusters.fc9403b001bd0bf73f3e20f2d62390dd"
-    headers = {
-    'accept': 'application/vnd.linkedin.normalized+json+2.1',
-    'cookie': 'bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; li_alerts=e30=; g_state={"i_l":0}; timezone=Europe/Stockholm; li_theme=light; li_theme_set=app; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; _gcl_au=1.1.308589430.1710419664; aam_uuid=16424388958969701103162659259461292262; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; visit=v=1&M; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; lang=v=2&lang=en-us; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; liap=true; JSESSIONID="ajax:2715582253737539260"; li_mc=MTsyMTsxNzEyMjQwODY0OzI7MDIxdXJbhWQTb9bQhoqeaNeYR86T5nLAaGIiEV/4jxFeN8k=; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712845667%7C6%7CMCAAMB-1712845667%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712248067s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; UserMatchHistory=AQLxauI7-6RzTAAAAY6pgnxdXTBrAa-SydEl63PvGCQ1jjsVahs2drHifupclmL04-18pwVr1LO0JodPWbp88d1ILOpuCyaMexecyWwk6Nza9yrNkrZGldQ2m9VLipDg0ap1TZzJKzg2kDP3wT7nIkZYgAkzdKTAR_P3jgdq9w_vYFryWsIIVnn1mwPSfeTJwUNUVCYbEOYoBTU0xsmBixTAXUElkFWtYUNfxyskhUiUH36EAblKQkysrom6TCBNuDtHU0zi048ZwyJTkdB_wUpES6e0-tSnASEoEUtIV1gXe0V9U250pStczejNef1bRUVgOsY; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4191:u=253:x=1:i=1712240886:t=1712321207:v=2:sig=AQG9S4v0Kj0yW-ODyV13CuvafObHe39h"; AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19817%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712823944%7C6%7CMCAAMB-1712823944%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712226344s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; UserMatchHistory=AQKz6POJSiLt1AAAAY6okULilyFDXuLLHMAMYVzy-IMAs6Dlwno_fksOjnrsAnsZpD2MUiiNSG9oGzLrbQNa4N5CTJqA0FOGwUAH3-vZ9blAScHMZjWEElHwe_wJf4WbR02jFr8oZXirGt2T5fmAiHm_27xgkRrk0ivUr11nWHvdhh6l_QpEkhkJhkL1gItuDoH1ok95GHg4SC0rIoD7Txfw0C_QUZnpE8oMvyyScBkPIIwEBHuDwDKIW9Bd8LPkVpLt-FRLcxHxceXm1RjE12H6A3hq8Hmugcmg5htGzvIiW-lBiKnLsYGUSPowBkKdDtoFxVk; __cf_bm=9k0YH.TnhpxZVsEcjd7pzdHJwYKsGVuIuTVMfS95CTI-1712241617-1.0.1.1-UJLsrluaZ6uPPccSsQW9KSqRugBHjQ.E8n79oiQ39sxEJCObE3X0lKU6i57rXu.zdnIhdawkm6Nm9aeYuGlCfw; _gcl_au=1.1.308589430.1710419664; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; aam_uuid=16424388958969701103162659259461292262; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; lang=v=2&lang=en-us; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; li_mc=MTsyMTsxNzEyMjQxNjE2OzI7MDIxAiLRp+BCEjWGrw6QH8tWWKZ0nG7qS7cAAvpmIr/vPis=; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; liap=true; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4191:u=253:x=1:i=1712239181:t=1712321207:v=2:sig=AQHpYfR4gr_Og7TOsIWENsVIbU6FYbfy"; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; test=cookie; visit=v=1&M; JSESSIONID="ajax:2715582253737539260"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; li_g_recent_logout=v=1&true; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm',
-    'csrf-token': 'ajax:2715582253737539260',
-    'sec-fetch-mode': 'cors'
-    }
+# def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_retries=1): 
+#     api_request_url = f"https://www.linkedin.com/voyager/api/graphql?variables=(start:0,origin:FACETED_SEARCH,query:(keywords:{keywords},flagshipSearchIntent:ORGANIZATIONS_PEOPLE_ALUMNI,queryParameters:List((key:currentCompany,value:List({company_id})),(key:resultType,value:List(ORGANIZATION_ALUMNI))),includeFiltersInResponse:true),count:12)&queryId=voyagerSearchDashClusters.aacf309cb55f24005e058d2cf30a95ad"
+#     headers = {
+#     'csrf-token': 'ajax:2715582253737539260',
+#     'Cookie': 'AMCVS_14215E3D5995C57C0A495C55%40AdobeOrg=1; AMCV_14215E3D5995C57C0A495C55%40AdobeOrg=-637568504%7CMCIDTS%7C19819%7CMCMID%7C15864482448327108373110627159475528493%7CMCAAMLH-1712897716%7C6%7CMCAAMB-1712897716%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1712300116s%7CNONE%7CMCCIDH%7C-1259936587%7CvVersion%7C5.1.1; AnalyticsSyncHistory=AQInqKM9VjeJfgAAAY6jDr95ykAKgdVEJ-lmi2hFEpuwpHs0GW_s9vj-G4Uw6j1j_pUJJhZMGdSj03dRsS-GKQ; UserMatchHistory=AQIyyG483-AyRQAAAY6snGlqbYZaWcLaLKz3_4RvwTcWNrbhAoXxlx6a7Lao2LNO4wFPodake-rWR7cY3QPSajrnGsONagtY2zX3YKArR77E2OSNLxUv11Kft2vD_v8VxKxXGp1uIJ8Fyw6WStYifUHp1G31SQs5Kwg0je8oACaKFOnfBnhYNhKXAt9gzIGYzYJ8l-5GBLqOO8xWuch8c567rYxTIAfHgsVXwtdugJ920H2wi8XvZGaU82T3WnaQG0b0LnwPj4vkYGIFaHwWRJSrBvn0r44D3Wn14pJ5KZaYwLUe5QfUTAjgITReIRoDd4sOGjU; __cf_bm=0mGm.ta8zQI_VeqZVf_twS.5eIB7DkbespqLbZ2RZ00-1712292913-1.0.1.1-X7Z7qtSv0hIhZmVq0O_8Y6IbHv18_kCObU6uorqdrI679tNNHE.grYcRAdeYESw9OdQxB_5c3.g8gCB8zAa6Wg; _gcl_au=1.1.308589430.1710419664; _guid=9d344ac1-8a69-44f0-ba51-4e8884d4ccac; aam_uuid=16424388958969701103162659259461292262; bcookie="v=2&21324318-35a4-4b89-8ccd-66085ea456e6"; dfpfpt=2585905f65d4454db4b2923a3ee8bc24; fptctx2=taBcrIH61PuCVH7eNCyH0MJojnuUODHcZ6x9WoxhgCkAr9en60wAbfeXvyW5bYQhcX76e9lzuPfcckEKYDk1omjn%252fBbajvM3A%252f0ra5KWWbn6CpB5ts0e8OrCs%252bDiqyP2v4aXF1Cod4M2QlHSbNcvqxsjRiMumDMdY2cZBC7rnBcwKqNM68r3TpZblRKHzhjqTvmVAWbcHGdsb5IwTFqJY%252fMUYh2Qg2S1xLvrOKsF819j5MizM%252fQkmqKNoUidY7bXjPqOzaXZfqS9qrp55bj79ludUr4VLcG1FqHXzI%252fnEZb6Gg8pzytrnrgQFlDD4qhZPoL773oMaOt5Xu7Zj6UYRpAMqFbr0QakvMVWMSvw93s%253d; lang=v=2&lang=en-us; li_gc=MTswOzE3MTA0MTk0MzU7MjswMjE2GFD4tGaA955A7K5M9w3OxKao0REV7R8R3/LDZ/ZVJQ==; li_mc=MTsyMTsxNzEyMjkyOTEzOzI7MDIx9BjGtRnSnzpArFIVFDpKPGlBvMmvIqBkH0KXq1LeRw0=; li_sugr=6fadc81f-40bf-4c11-9bc8-f36f95783541; liap=true; lidc="b=VB74:s=V:r=V:a=V:p=V:g=4204:u=253:x=1:i=1712292917:t=1712379313:v=2:sig=AQFPTFogKL0fCK-flXCrC0J-sYVmFOww"; lms_ads=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; lms_analytics=AQEPbpVkVUBMJwAAAY6jDsDdSL3Mw1m_OduZrR3hlmqPxRHRs1Ajcc5Zo_Z8pOj-Kl3vtbYD-sa69Co_lrctHDJKkWtAjACm; visit=v=1&M; JSESSIONID="ajax:2715582253737539260"; bscookie="v=1&202403141230369a2ffb3d-11be-445e-8196-32de3e951a31AQFV3WHayzR8g95w6TJ6LrZlOyXvi0m3"; g_state={"i_l":0}; li_alerts=e30=; li_at=AQEDASvMh7YD9s79AAABjqiLGqYAAAGOzJeepk0AeYx2DWyrkdJ2zOVnqqljd2pif0w70vXt5CAmfT-Fzviq450QuPbnNpN17uHRhNTjn38eeZfAzJg70FJChZAL8U0ElXl--_qooC9a45fdzqkaU7Sv; li_rm=AQHjnJLrN-yKBQAAAY5q4y9R8BRBllyhPbBn5d_YYX2L59W6HxE_DqKNA8I0kMJ65IWgm2p2lw6Nr-GtGaWvKLjdLWcGo7lk7TxomWVYVRCBBwCg0vdKIUKRO5r3HtOd-9SY1a3tgovir_swKutrRj18DIt1HyV6JLLjK7r_2_Q3Y17vc2CH16R-MR9JvdZ43vTF0Y3FC9phhH2YQIfsbFlThT369bNJPiiDf9KdkGjeERmZH7RAG2iu0b7jY6iAidzkyplMV_nmlyqO_-v-2dRjfqjTYSjZwx0D046PpPzLEu1Vy7RK5SBlfPOm2djsHD8H4sQ32JlCErdlwYI; li_theme=light; li_theme_set=app; timezone=Europe/Stockholm',
+#     }
 
-    keywords_list = keywords.lower().split(", ")
+#     keywords_list = keywords.lower().split(", ")
 
-    for attempt in range(max_retries):
-        try:
-            response = requests.request("GET", api_request_url, headers=headers)
-            print(f"Response status: {response.status_code}")
-            if response.status_code == 200:
-                print("RESPONSE 200")
-                data = response.json()
-                included = data.get('included', [{}])
+#     for attempt in range(max_retries):
+#         try:
+#             time.sleep(random.randint(3,5))
+#             response = requests.request("GET", api_request_url, headers=headers)
+#             if response.status_code == 200:
+#                 print("RESPONSE 200")
+#                 data = response.json()
+#                 print(f"Data: {data}")
+#                 included = data.get('included', [{}])
+#                 print(f"Included: {included}")
 
-                # Filter out any items in 'included' that don't represent a person based on a minimum number of keys
-                filtered_people = [person for person in included if len(person) >= 5]
+#                 # Filter out any items in 'included' that don't represent a person based on a minimum number of keys
+#                 filtered_people = [person for person in included if len(person) >= 5]
+#                 # print(filtered_people[:300])
                 
-                processed = []
-                for person in filtered_people:
-                    if  len(processed) >= max_people_per_company:
-                        break # Exit the loop once we have enough people
+#                 processed = []
+#                 for person in filtered_people:
+#                     print(type(person))
+#                     if  len(processed) >= max_people_per_company:
+#                         break # Exit the loop once we have enough people
 
-                    if not isinstance(person, dict):
-                        continue
+#                     if not isinstance(person, dict):
+#                         continue
 
-                    linkedin_url = person.get('navigationUrl')
-                    if isinstance(linkedin_url, str):
-                        linkedin_url_search = re.search(r'^(.*?)\?', linkedin_url)
-                        linkedin_url_result = linkedin_url_search.group(1) if linkedin_url_search else linkedin_url # Use the original URL if no query parameters are found
-                    else:
-                        linkedin_url_result = None
-                    full_name = person.get('title', {}).get('text', None)
-                    bio = person.get('primarySubtitle', {}).get('text', None)
+#                     linkedin_url = person.get('navigationUrl')
+#                     if isinstance(linkedin_url, str):
+#                         linkedin_url_search = re.search(r'^(.*?)\?', linkedin_url)
+#                         linkedin_url_result = linkedin_url_search.group(1) if linkedin_url_search else linkedin_url # Use the original URL if no query parameters are found
+#                     else:
+#                         linkedin_url_result = None
+#                     full_name = person.get('title', {}).get('text', None)
+#                     bio = person.get('primarySubtitle', {}).get('text', None)
                     
-                    is_present = any(title in bio.lower() for title in keywords_list)
-                    if is_present:
-                        processed.append(("FALSE", full_name, bio, linkedin_url_result))
+#                     is_present = any(title in bio.lower() for title in keywords_list)
+#                     if is_present:
+#                         processed.append(("FALSE", full_name, bio, linkedin_url_result))
 
-                return processed
-            else:
-                time.sleep(random.randint(3,5))
-        except requests.exceptions.RequestException as e:
-            print(f"Request failed: {e}")
-            time.sleep(random.randint(3,5))
-    return []
+#                 return processed
+#             else:
+#                 time.sleep(random.randint(3,5))
+#         except requests.exceptions.RequestException as e:
+#             print(f"Request failed: {e}")
+#             time.sleep(random.randint(3,5))
+#     return []
 
-def hiring_person_or_not(job_posting_id, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company):
+def hiring_person_or_not(job_posting_id, employee_threshold, under_threshold_keywords, over_threshold_keywords):
+    full_name = bio = linkedin_url = None
     full_name, bio, linkedin_url = extract_full_name_bio_and_linkedin_url(job_posting_id)
     if full_name and bio and linkedin_url:
         hiring_team = "TRUE"
-        return [(hiring_team, full_name, bio, linkedin_url)]
+        return (hiring_team, full_name, bio, linkedin_url)
     else:
-        posting, job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
+        hiring_team = "FALSE"
+        return (hiring_team, None, None, None)
+        # posting, job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
 
-        if employee_count is not None:
-            company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords
-            url_formatted_keywords = company_keywords.replace(', ', '%20OR%20').strip()        
-            company_people = extract_non_hiring_person(companyID, url_formatted_keywords, max_people_per_company)
-            return company_people
-        else:
-            return []
+        # if employee_count is not None:
+        #     company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords
+        #     url_formatted_keywords = company_keywords.replace(', ', '%20OR%20').strip()        
+        #     company_people = extract_non_hiring_person(companyID, url_formatted_keywords, max_people_per_company)
+        #     return company_people
+        # else:
+        #     return []
 
-def main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, max_workers=5):
+def main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_workers=5):
     all_job_posting_ids = extract_all_job_posting_ids(keyword, batches)
-    # print(f"All job posting ids: {all_job_posting_ids}")
-    # job_postings_to_process = len(all_job_posting_ids)
 
     grouped_results = []
 
@@ -245,7 +254,7 @@ def main(keyword, batches, employee_threshold, under_threshold_keywords, over_th
         }
         future_to_job.update({
             executor.submit(hiring_person_or_not, job_posting, employee_threshold, under_threshold_keywords, 
-                            over_threshold_keywords, max_people_per_company): job_posting for job_posting in all_job_posting_ids
+                            over_threshold_keywords): job_posting for job_posting in all_job_posting_ids
         })
 
     results = {}
@@ -267,6 +276,45 @@ def main(keyword, batches, employee_threshold, under_threshold_keywords, over_th
             grouped_results.append(tuple(data))
     
     return grouped_results
+
+def turn_grouped_results_into_df(grouped_results):
+    results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Företagsindustri':[], 'Företags-URL':[]}
+
+    for result in grouped_results:
+        if len(result[0]) == 7:
+            job_posting_id, job_title, company_name, employee_count, company_url, company_industry, company_id = result[0]
+            hiring_team, full_name, bio, linkedin_url = result[1]
+        else:
+            job_posting_id, job_title, company_name, employee_count, company_url, company_industry, company_id = result[1]
+            hiring_team, full_name, bio, linkedin_url = result[0]
+        
+        results['Hiring Team'].append(hiring_team)
+
+        if full_name:
+            first_name, last_name = split_and_clean_full_name(full_name)
+            results['Förnamn'].append(first_name)
+            results['Efternamn'].append(last_name)
+        else:
+            results['Efternamn'].append(None)
+            if employee_count:
+                company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords
+                url_formatted_keywords = company_keywords.strip().replace(', ', '%20OR%20').replace(' ', '%20')
+                construced_url = f"{company_url}/people/?keywords={url_formatted_keywords}"
+                results['Förnamn'].append(construced_url)
+            else:
+                results['Förnamn'].append(None)
+        
+        results['Bio'].append(bio)
+        results['LinkedIn URL'].append(linkedin_url)
+        results['Jobbtitel som sökes'].append(job_title)
+        results['Jobbannons-URL'].append(f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden")
+        results['Företag'].append(company_name)
+        results['Antal anställda'].append(employee_count)
+        results['Företagsindustri'].append(company_industry)
+        results['Företags-URL'].append(company_url)
+
+    linkedin_jobs_df = pd.DataFrame.from_dict(results)
+    return linkedin_jobs_df
 
 def generate_csv(dataframe, result_name):
     if result_name.endswith('.csv'):
@@ -299,7 +347,7 @@ st.write("If there is no Hiring Team available and the company has less than or 
 employee_threshold = st.number_input("Employee Threshold", min_value=1, value=100, step=1, format="%d", label_visibility="collapsed")
 under_threshold_keywords = st.text_input('employees, search the company for (separate keywords with comma):', '')
 over_threshold_keywords = st.text_input('If it has more, search the company for: (separate keywords with comma)', '')
-max_people_per_company = st.text_input('Max amount of people scraper per company if no Hiring Team:', '')
+# max_people_per_company = st.text_input('Max amount of people to scrape per company if no Hiring Team:', '')
 
 # Radio button to choose the file format
 file_format = st.radio("Choose the file format for download:", ('csv', 'xlsx'))
@@ -318,91 +366,58 @@ if st.button('Generate File'):
 
             if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
                 total_number_of_results = int(max_results_to_check)
-            print(f"Attempting to scrape info from {total_number_of_results} job ads!")
+            print(f"Attempting to scrape info from {total_number_of_results} job ads")
+            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads")
 
             batches = split_total_into_batches_of_100(total_number_of_results)
             print(f"Splitting {total_number_of_results} in batches: {batches}")
 
-            results = main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company)
+            results = main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords)
             end_time = time.time()
+
             print("Done!")
-            print(results)
-            print(len(results))
             st.text(f"Done! Scraped {total_number_of_results} products in {end_time - start_time} seconds")
+            scraped_data_df = turn_grouped_results_into_df(results)
             # st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
 
-            # if file_format == 'csv':
-            #     csv_file = generate_csv(scraped_data_df, result_name)
-            #     with open(csv_file, "rb") as file:
-            #         st.download_button(label="Download CSV", data=file, file_name=csv_file, mime='text/csv')
-            #     st.success(f'CSV file generated: {csv_file}')
-            # elif file_format == 'xlsx':
-            #     excel_file = generate_excel(scraped_data_df, result_name)
-            #     st.download_button(label="Download Excel", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            #     st.success(f'Excel file generated: {result_name}.xlsx')
+            if file_format == 'csv':
+                csv_file = generate_csv(scraped_data_df, result_name)
+                with open(csv_file, "rb") as file:
+                    st.download_button(label="Download CSV", data=file, file_name=csv_file, mime='text/csv')
+                st.success(f'CSV file generated: {csv_file}')
+            elif file_format == 'xlsx':
+                excel_file = generate_excel(scraped_data_df, result_name)
+                st.download_button(label="Download Excel", data=excel_file, file_name=f"{result_name}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                st.success(f'Excel file generated: {result_name}.xlsx')
         else:
             st.error('Please enter a valid LinkedIn URL.')
 
 # linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL"
-linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3860933366&geoId=105117694&keywords=frontend%20developer&location=Sweden&origin=JOB_SEARCH_PAGE_KEYWORD_AUTOCOMPLETE&refresh=true"
-results_name = "linkedin_jobs_sem_seo_no_segment.csv"
+# # linkedin_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=3860933366&geoId=105117694&keywords=frontend%20developer&location=Sweden&origin=JOB_SEARCH_PAGE_KEYWORD_AUTOCOMPLETE&refresh=true"
+# results_name = "linkedin_jobs_sem_seo_fully_working_temp.csv"
 
 # start_time = time.time()
-print("Running...")
-keyword_search = re.search(r'keywords=([^&]+)', linkedin_job_url)
-keyword = keyword_search.group(1) if keyword_search else None
-print(f"Keyword: {keyword}")
-total_number_of_results = 50
-print(f"Total: {total_number_of_results}")
-batches = split_total_into_batches_of_100(total_number_of_results)
-print(f"Batches: {batches}")
-employee_threshold = 100
-under_threshold_keywords = "CEO, VD, Founder"
-over_threshold_keywords = "CMO, Chief of Marketing, Head of Marketing, Marknadschef, Marketing Director, Director Marketing, Vice President Marketing"
-max_people_per_company = 3
-
-job_posting_ids = extract_all_job_posting_ids(keyword, batches)
-print(job_posting_ids)
-job_posting_id = job_posting_ids[1]
-print(job_posting_id)
-job_posting_id = "3820469408"
-full_name, bio, url = extract_full_name_bio_and_linkedin_url(job_posting_id)
-print(full_name, bio, url)
-company_info = extract_company_info(job_posting_id)
-print(company_info)
-job_posting_id, job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
-company_people = extract_non_hiring_person(companyID, over_threshold_keywords, max_people_per_company)
-print(company_people)
+# print("Running...")
+# keyword_search = re.search(r'keywords=([^&]+)', linkedin_job_url)
+# keyword = keyword_search.group(1) if keyword_search else None
+# print(f"Keyword: {keyword}")
+# total_number_of_results = 59
+# print(f"Total: {total_number_of_results}")
+# batches = split_total_into_batches_of_100(total_number_of_results)
+# print(f"Batches: {batches}")
+# employee_threshold = 100
+# under_threshold_keywords = "CEO, VD, Founder"
+# over_threshold_keywords = "CMO, Chief of Marketing, Head of Marketing, Marknadschef, Marketing Director, Director Marketing, Vice President Marketing"
+# max_people_per_company = 2
 
 # grouped_results = main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company)
 # end_time = time.time()
-# print(f"Done! Scraped info from {total_number_of_results} job ads in {end_time - start_time} seconds")
-# print(grouped_results)
+# # print(grouped_results)
 # print(len(grouped_results))
+# print(f"Done! Scraped info from {total_number_of_results} job ads in {end_time - start_time} seconds")
 
-# results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Företagsindustri':[], 'Företags-URL':[]}
-
-# for result in grouped_results:
-#     job_posting_id, job_title, company_name, employee_count, company_url, company_industry, company_id = result[0]
-#     # company_segment = result[1]
-#     for person in result[1]:
-#         hiring_team, full_name, bio, linkedin_url = person
-#         first_name, last_name = split_and_clean_full_name(full_name)
-
-#         results['Hiring Team'].append(hiring_team)
-#         results['Förnamn'].append(first_name)
-#         results['Efternamn'].append(last_name)
-#         results['Bio'].append(bio)
-#         results['LinkedIn URL'].append(linkedin_url)
-#         results['Jobbtitel som sökes'].append(job_title)
-#         results['Jobbannons-URL'].append(f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden")
-#         results['Företag'].append(company_name)
-#         results['Antal anställda'].append(employee_count)
-#         results['Företagsindustri'].append(company_industry)
-#         results['Företags-URL'].append(company_url)
-
-# linkedin_jobs_df = pd.DataFrame.from_dict(results)
-# linkedin_jobs_df.to_csv(results_name, index=False)
+# df = turn_grouped_results_into_df(grouped_results)
+# df.to_csv(results_name, index=False)
 
 # with open ("times.txt", "a") as f:
 #     f.write(f"Total: {total_number_of_results}, Time: {end_time - start_time}\n")
@@ -571,4 +586,42 @@ print(company_people)
 #             except requests.exceptions.RequestException as e:
 #                 print(f"Request failed: {e}")
 #                 time.sleep(random.randint(3,5))    
-#     return None      
+#     return None   
+
+# url_formatted_keywords = company_keywords.replace(', ', '%20OR%20').replace(' ', '%20OR%20').strip()    
+
+# for person in result[1]:
+#     hiring_team, full_name, bio, linkedin_url = person
+#     first_name, last_name = split_and_clean_full_name(full_name)
+
+#     results['Hiring Team'].append(hiring_team)
+#     results['Förnamn'].append(first_name)
+#     results['Efternamn'].append(last_name)
+#     results['Bio'].append(bio)
+#     results['LinkedIn URL'].append(linkedin_url)
+#     results['Jobbtitel som sökes'].append(job_title)
+#     results['Jobbannons-URL'].append(f"https://www.linkedin.com/jobs/search/?currentJobId={job_posting_id}&geoId=105117694&keywords={keyword}&location=Sweden")
+#     results['Företag'].append(company_name)
+#     results['Antal anställda'].append(employee_count)
+#     results['Företagsindustri'].append(company_industry)
+#     results['Företags-URL'].append(company_url)
+
+# construced_url = f"{company_url}/people/?keywords={url_formatted_keywords}"
+# print(construced_url)
+# job_posting_ids = extract_all_job_posting_ids(keyword, batches)
+# # print(job_posting_ids)
+# job_posting_id = job_posting_ids[16]
+# # job_posting_id = "3863470230"
+# print(job_posting_id)
+# hiring_team_person = extract_full_name_bio_and_linkedin_url(job_posting_id)
+# print(hiring_team_person)
+# # # full_name, bio, url = hiring_team_person
+# company_info = extract_company_info(job_posting_id)
+# print(company_info)
+# job_posting_id, job_title, company_name, employee_count, company_url, company_industry, companyID = extract_company_info(job_posting_id)
+# company_keywords = under_threshold_keywords if employee_count <= employee_threshold else over_threshold_keywords
+# print(company_keywords)
+# url_formatted_keywords = company_keywords.strip().replace(', ', '%20OR%20').replace(' ', '%20')
+# print(url_formatted_keywords)
+# company_people = extract_non_hiring_person(companyID, url_formatted_keywords, max_people_per_company)
+# print(company_people)
