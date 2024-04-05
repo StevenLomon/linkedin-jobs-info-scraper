@@ -237,7 +237,7 @@ def hiring_person_or_not(job_posting_id, employee_threshold, under_threshold_key
         else:
             return []
 
-def main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, max_workers=5):
+def main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, max_workers=6):
     all_job_posting_ids = extract_all_job_posting_ids(keyword, batches)
     grouped_results = []
 
@@ -342,7 +342,7 @@ def convert_seconds_to_minutes_and_seconds(seconds):
 
 ## STREAMLIT CODE
 st.title('LinkedIn Job search URL to CSV Generator V2')
-st.markdown('Working on having people extracting from the company People page working 🛠️')
+st.markdown('Working on making it faster 🛠️')
 st.markdown(f'Sample URL: https://www.linkedin.com/jobs/search/?currentJobId=3836861341&keywords=sem%20seo&origin=SWITCH_SEARCH_VERTICAL')
 
 # User input for LinkedIn URL
@@ -373,8 +373,7 @@ if st.button('Generate File'):
             if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
                 total_number_of_results = int(max_results_to_check)
             print(f"Attempting to scrape info from {total_number_of_results} job ads")
-            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads")
-            # st.markdown(f"Meaning this will take around {convert_seconds_to_minutes_and_seconds(total_number_of_results)} minutes but potentially faster")
+            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads. It takes approximately 3 seconds per job ad, meaning this will take around {convert_seconds_to_minutes_and_seconds(total_number_of_results*3)} minutes but potentially faster")
 
             batches = split_total_into_batches_of_100(total_number_of_results)
             print(f"Splitting {total_number_of_results} in batches: {batches}")
@@ -383,7 +382,7 @@ if st.button('Generate File'):
             end_time = time.time()
 
             print("Done!")
-            st.text(f"Done! Scraped {total_number_of_results} products in {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minutes")
+            st.text(f"Done! Scraped info from {total_number_of_results} ads in {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minutes")
             scraped_data_df = turn_grouped_results_into_df(results)
             # st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
 
