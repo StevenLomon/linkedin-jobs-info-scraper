@@ -371,13 +371,13 @@ if st.button('Generate File'):
             if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
                 total_number_of_results = int(max_results_to_check)
             print(f"Attempting to scrape info from {total_number_of_results} job ads")
-            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads. It takes approximately just under 1 second per job ad but it scales and gets faster the more requests!")
-            st.markdown(f"Meaning this will take around {convert_seconds_to_minutes_and_seconds(total_number_of_results)} minutes but potentially faster")
+            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads")
+            # st.markdown(f"Meaning this will take around {convert_seconds_to_minutes_and_seconds(total_number_of_results)} minutes but potentially faster")
 
             batches = split_total_into_batches_of_100(total_number_of_results)
             print(f"Splitting {total_number_of_results} in batches: {batches}")
 
-            results = main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company)
+            results = main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, int(max_people_per_company))
             end_time = time.time()
 
             print("Done!")
