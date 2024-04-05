@@ -4,7 +4,6 @@ import streamlit as st
 from rich import print, print_json
 from io import BytesIO
 from urllib.parse import quote
-from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def get_total_number_of_results(keyword, max_retries=3):
