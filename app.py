@@ -259,7 +259,6 @@ def main(keyword, batches, employee_threshold, under_threshold_keywords, over_th
             job_posting = future_to_company.get(future) or future_to_employee.get(future)
             try:
                 data = future.result()
-                print(f"Data: {data}")
                 if future in future_to_company:
                     results[job_posting][0] = data
                 else:
@@ -272,7 +271,9 @@ def main(keyword, batches, employee_threshold, under_threshold_keywords, over_th
 
     # Organizing the results
     for job_posting, data_pair in results.items():
-        if None not in data_pair:  # Ensure both company and employee info are present
+        # Check if employee data (data_pair[1]) is not empty
+        if data_pair[1]:  # This checks if employee_data is not empty
+            print(f"Data pair: {data_pair}")
             grouped_results.append((job_posting, tuple(data_pair)))
     
     return grouped_results
@@ -281,14 +282,18 @@ def turn_grouped_results_into_df(grouped_results):
     results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Företagsindustri':[], 'Företags-URL':[]}
 
     for result in grouped_results:
+        print(f"Result: {result}")
         job_posting_id = result[0]
+        print(f"Result[1][1]: {result[1][1]}")
         if isinstance(result[1][1], list): # Employee data will always be a list
             company_data, employee_data = result[1]
         else:
             employee_data, company_data = result[1]
 
+        print(f"Company data: {company_data}")
         job_title, company_name, employee_count, company_url, company_industry, company_id = company_data
 
+        print(f"Employee data: {employee_data}")
         for person in employee_data:
             hiring_team, full_name, bio, linkedin_url = person
         
@@ -394,6 +399,7 @@ if st.button('Generate File'):
             print(f"Done! Length of results: {len(results)}")
             st.text(f"Done! Scraped info from {total_number_of_results} ads in {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minutes")
             scraped_data_df = turn_grouped_results_into_df(results)
+            # print(f"Scraped data df shape: {scraped_data_df.shape}")
             # st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
 
             if file_format == 'csv':
