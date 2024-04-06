@@ -292,25 +292,24 @@ def turn_grouped_results_into_df(grouped_results):
     results = {'Hiring Team':[], 'Förnamn':[], 'Efternamn':[], 'Bio':[], 'LinkedIn URL':[], 'Jobbtitel som sökes':[], 'Jobbannons-URL':[], 'Företag':[], 'Antal anställda':[], 'Företagsindustri':[], 'Företags-URL':[]}
 
     for result in grouped_results:
-        print(f"Result: {result}")
         job_posting_id = result[0]
-        print(f"Result[1][1]: {result[1][1]}")
         if isinstance(result[1][1], list): # Employee data will always be a list
             company_data, employee_data = result[1]
         else:
             employee_data, company_data = result[1]
 
         print(f"Company data: {company_data}")
+        print(f"Employee data: {employee_data}")
+
         job_title, company_name, employee_count, company_url, company_industry, company_id = company_data
 
-        print(f"Employee data: {employee_data}")
         for person in employee_data:
             hiring_team, full_name, bio, linkedin_url = person
         
             results['Hiring Team'].append(hiring_team)
-
             if full_name:
                 first_name, last_name = split_and_clean_full_name(full_name)
+                print(f"First name: {first_name}, Last name: {last_name}")
                 results['Förnamn'].append(first_name)
                 results['Efternamn'].append(last_name)
             else:
@@ -378,7 +377,7 @@ st.write("If there is no Hiring Team available and the company has less than or 
 employee_threshold = st.number_input("Employee Threshold", min_value=1, value=100, step=1, format="%d", label_visibility="collapsed")
 under_threshold_keywords = st.text_input('employees, search the company for (separate keywords with comma):', '')
 over_threshold_keywords = st.text_input('If it has more, search the company for: (separate keywords with comma)', '')
-max_people_per_company = st.text_input('Max amount of people to scrape per company if no Hiring Team:', '')
+max_people_per_company = st.number_input('Max amount of people to scrape per company if no Hiring Team:', min_value=1, value=2, step=1, format="%d")
 
 # Radio button to choose the file format
 file_format = st.radio("Choose the file format for download:", ('csv', 'xlsx'))
@@ -409,7 +408,6 @@ if st.button('Generate File'):
             print(f"Done! Length of results: {len(results)}")
             st.text(f"Done! Scraped info from {total_number_of_results} ads in {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minutes")
             scraped_data_df = turn_grouped_results_into_df(results)
-            # print(f"Scraped data df shape: {scraped_data_df.shape}")
             # st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
 
             if file_format == 'csv':
