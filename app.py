@@ -237,6 +237,7 @@ def hiring_person_or_not(job_posting_id, employee_threshold, under_threshold_key
 
 def main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, max_people_per_company, max_workers=5):
     all_job_posting_ids = extract_all_job_posting_ids(keyword, batches)
+    print(f"All job posting ids: {all_job_posting_ids}")
     grouped_results = []
 
     # Using ThreadPoolExecutor to manage a pool of threads
@@ -258,6 +259,7 @@ def main(keyword, batches, employee_threshold, under_threshold_keywords, over_th
             job_posting = future_to_company.get(future) or future_to_employee.get(future)
             try:
                 data = future.result()
+                print(f"Data: {data}")
                 if future in future_to_company:
                     results[job_posting][0] = data
                 else:
@@ -381,7 +383,7 @@ if st.button('Generate File'):
             if len(max_results_to_check) != 0 and int(max_results_to_check) < total_number_of_results:
                 total_number_of_results = int(max_results_to_check)
             print(f"Attempting to scrape info from {total_number_of_results} job ads")
-            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads. It takes approximately 3 seconds per job ad, meaning this will take around {convert_seconds_to_minutes_and_seconds(total_number_of_results*3)} minutes but potentially faster")
+            st.markdown(f"Attempting to scrape info from {total_number_of_results} job ads. It takes approximately 2.5 seconds per job ad, meaning this will take around {convert_seconds_to_minutes_and_seconds(total_number_of_results*2.5)} minutes but potentially faster!")
 
             batches = split_total_into_batches_of_100(total_number_of_results)
             print(f"Splitting {total_number_of_results} in batches: {batches}")
@@ -389,7 +391,7 @@ if st.button('Generate File'):
             results = main(keyword, batches, employee_threshold, under_threshold_keywords, over_threshold_keywords, int(max_people_per_company))
             end_time = time.time()
 
-            print("Done!")
+            print(f"Done! Length of results: {len(results)}")
             st.text(f"Done! Scraped info from {total_number_of_results} ads in {convert_seconds_to_minutes_and_seconds(end_time - start_time)} minutes")
             scraped_data_df = turn_grouped_results_into_df(results)
             # st.text(f"Total job posting ids found in the request: {total_number_of_results}\nTotal fetched succesfully: {total_fetched}\nTotal unique ids: {total_unique}\nTotal with hiring team available: {total_hiring_team}")
