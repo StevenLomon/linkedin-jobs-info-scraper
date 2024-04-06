@@ -1,0 +1,31 @@
+The company link in the right side bar is not always clickable How does it show up in the JSON request result?
+The keywords search can give a lot of results: https://www.linkedin.com/company/ssab/people/?keywords=CMO%20OR%20Chief%20of%20Marketing%20OR%20Head%20of%20Marketing%20OR%20Marknadschef%20OR%20Marketing%20Director
+Try to match the keywords to the bio the best we can
+Let's put the keywords from the front end in a list
+FRONT END: "CMO, Chief of Marketing, Head of Marketing, Marknadschef, Marketing Director, Vice President Marketing"
+LINKEDIN QUERY: "CMO%20OR%20Chief%20of%20Marketing%20OR%20Head%20of%20Marketing%20OR%20Marknadschef%20OR%20Marketing%20Director%20OR%20Vice%20President%20Marketing"
+LINKEDIN: "CMO OR Chief of Marketing OR Head of Marketing OR Marknadschef OR Marketing Director OR Vice President Marketing"
+
+The list becomes: more_than_list = more_than_keywords.split(", ") -> ['CMO', 'Chief of Marketing', 'Head of Marketing', 'Marknadschef', 'Marketing Director', 'Vice President Marketing']
+This guys's bio: Director Marketing at SSAB Europe
+This code is GOLD: is_present = any(title in linkedin_bio for title in over_threshold_list)
+And I need to add 'Director Marketing' bcuz of this silly guy :]
+This weeds away the majority of people
+And I also need to make sure we're comparing lowercase:
+over_threshold_list = over_threshold_keywords.lower().split(", ")
+is_present = any(title in linkedin_bio.lower() for title in over_threshold_list)
+If more than 2 (if that is what we put into the front end)? Pick the top 2 cuz it seems like there is a semblence of sorting based on keyword match
+
+This is a truly interesting case that breaks my full name cleaning function: https://www.linkedin.com/in/nicklas-hafner-fd-johansson-60233741/
+
+I need to make sure the odd case where the query result on the company page that gives 0 results doesn't break the program.
+This is a case where no one matches: https://www.linkedin.com/company/begreen-sverige/people/?keywords=CEO%20OR%20VD%20OR%20Founder
+I also need to make sure that this returns an empty list and that it doesn't break the program, i.e. in the for result in grouped_results
+part of the code, I need to make sure that if the results tuple with employee info is empty, we just continue so that we don't
+insert it into the dataframe
+
+I really don't see how Hiring Team could crash. I just need to make sure it works. Let's get to it!
+
+This is truly fucking weird. If a company is of a certain size, their api_request_url will include additional parameters
+outside of the company id that is separate for each company. I am not bothering with these, so let's just pray that
+they have a hiring team like SAAB! And if they don't, they're probably not interested anyway
