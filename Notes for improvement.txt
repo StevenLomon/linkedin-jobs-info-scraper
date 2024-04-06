@@ -29,3 +29,12 @@ I really don't see how Hiring Team could crash. I just need to make sure it work
 This is truly fucking weird. If a company is of a certain size, their api_request_url will include additional parameters
 outside of the company id that is separate for each company. I am not bothering with these, so let's just pray that
 they have a hiring team like SAAB! And if they don't, they're probably not interested anyway
+
+A potential improvement depending on specifications:
+# Splitting keywords by spaces to allow partial matches within the bio
+for keyword in keywords_list:
+    # Creating a list of key phrases to match against the bio
+    key_phrases = keyword.split(" ")
+    if all(phrase.lower() in bio for phrase in key_phrases):
+        processed.append(("FALSE", full_name, bio, linkedin_url_result))
+        break  # Break the loop once a match is found to avoid duplicating the same person for multiple keywords

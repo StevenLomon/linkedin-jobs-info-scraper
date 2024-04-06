@@ -207,9 +207,19 @@ def extract_non_hiring_person(company_id, keywords, max_people_per_company, max_
                     full_name = person.get('title', {}).get('text', None)
                     bio = person.get('primarySubtitle', {}).get('text', None)
                     
-                    is_present = any(title in bio.lower() for title in keywords_list)
-                    if is_present:
+                    # Flag to determine if an exact match keyword is present
+                    exact_match_found = any(exact_keyword in bio.lower() for exact_keyword in keywords_list)
+                    if exact_match_found:
                         processed.append(("FALSE", full_name, bio, linkedin_url_result))
+                        continue
+
+                    # If no exact match, look for partial match for other keywords
+                    for keyword in keywords_list:
+                        # Creating a list of key phrases to match against the bio
+                        key_phrases = keyword.split(" ")
+                        if all(phrase.lower() in bio for phrase in key_phrases):
+                            processed.append(("FALSE", full_name, bio, linkedin_url_result))
+                            break  # Break the loop once a match is found to avoid duplicating the same person for multiple keywords
 
                 return processed
             else:
